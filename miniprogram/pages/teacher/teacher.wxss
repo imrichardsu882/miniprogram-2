@@ -1,0 +1,88 @@
+/* pages/teacher/teacher.wxss */
+page { background-color: #f2f2f7; }
+.container { padding: 15px; padding-bottom: 180rpx; }
+
+.header { 
+    padding: 10px 5px 20px 5px; 
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.page-title { 
+    font-size: 34px; 
+    font-weight: bold; 
+    display: block; 
+}
+.profile-entry {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10rpx;
+    border-radius: 16rpx;
+    transition: background-color 0.2s;
+}
+.entry-hover { background-color: #e5e5ea; }
+.profile-icon {
+    width: 50rpx;
+    height: 50rpx;
+    flex-shrink: 0;
+}
+.profile-label {
+    font-size: 20rpx;
+    color: #8e8e93;
+    margin-top: 4rpx;
+}
+
+.list-title { 
+    font-size: 18px; 
+    font-weight: 600; 
+    color: #1c1c1e; 
+    padding-left: 5px; 
+    margin-bottom: 15px; 
+    margin-top: 20px;
+}
+.homework-list { display: flex; flex-direction: column; gap: 15px; }
+.homework-card { display: flex; align-items: center; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); padding: 20px; transition: transform 0.15s ease-in-out; }
+.card-hover { transform: scale(0.98); }
+.card-content { flex-grow: 1; display: flex; flex-direction: column; }
+.homework-name { font-size: 17px; font-weight: 600; color: #1c1c1e; margin-bottom: 5px; }
+.word-count { font-size: 14px; color: #8e8e93; }
+.card-actions { display: flex; align-items: center; }
+.action-btn { font-size: 14px; padding: 8px 14px; border-radius: 8px; margin-left: 10px; }
+.edit-btn { background-color: #e5e5ea; color: #007aff; }
+.delete-btn { background-color: #ffe5e5; color: #ff3b30; }
+.empty-list { text-align: center; padding: 80rpx 0; color: #8e8e93; font-size: 16px; }
+.empty-list text:last-child { font-size: 14px; margin-top: 5px; }
+
+.fab-container { 
+    position: fixed; 
+    right: 25px; 
+    bottom: 40px; 
+    width: 56px; 
+    height: 56px; 
+    background-color: #007aff; 
+    border-radius: 50%; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    box-shadow: 0 8px 20px rgba(0, 122, 255, 0.35); 
+    transition: transform 0.15s ease-in-out; 
+}
+.fab-hover { transform: scale(0.95); }
+.fab-icon-text { font-size: 36px; color: white; font-weight: 300; line-height: 56px; }
+
+.student-mode-fixed-btn {
+    position: fixed;
+    left: 25px;
+    bottom: 45px;
+    font-size: 14px;
+    color: #8e8e93;
+    background-color: #ffffff;
+    padding: 10px 14px;
+    border-radius: 12px;
+    transition: background-color 0.2s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.btn-hover {
+    background-color: #dcdce1;
+}

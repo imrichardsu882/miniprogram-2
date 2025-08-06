@@ -1,0 +1,43 @@
+<view class="page-container">
+  <view class="header">
+    <view class="title">{{homeworkTitle}}</view>
+    <view class="summary" wx:if="{{reportData}}">
+      <view>{{reportData.completed.length}}人已完成 / {{reportData.notCompleted.length}}人未完成</view>
+    </view>
+  </view>
+
+  <view class="tabs">
+    <view class="tab-item {{activeTab === 'completed' ? 'active' : ''}}" bindtap="switchTab" data-tab="completed">已完成</view>
+    <view class="tab-item {{activeTab === 'notCompleted' ? 'active' : ''}}" bindtap="switchTab" data-tab="notCompleted">未完成</view>
+  </view>
+
+  <scroll-view scroll-y="true" class="content-container">
+    <view class="student-list" wx:if="{{activeTab === 'completed'}}">
+      <block wx:if="{{reportData.completed.length > 0}}">
+        <view class="student-card" wx:for="{{reportData.completed}}" wx:key="index">
+          <image class="avatar" src="{{item.avatarUrl}}"></image>
+          <view class="info">
+            <view class="nickname">{{item.nickName}}</view>
+            <view class="time">完成于 {{item.completionTime}}</view>
+          </view>
+          <view class="score {{item.score >= 90 ? 'high' : item.score < 60 ? 'low' : ''}}">{{item.score}}分</view>
+        </view>
+      </block>
+      <view class="empty-state" wx:else>暂无学生完成</view>
+    </view>
+
+    <view class="student-list" wx:if="{{activeTab === 'notCompleted'}}">
+      <block wx:if="{{reportData.notCompleted.length > 0}}">
+        <view class="student-card" wx:for="{{reportData.notCompleted}}" wx:key="index">
+          <image class="avatar" src="{{item.avatarUrl}}"></image>
+          <view class="info">
+            <view class="nickname">{{item.nickName}}</view>
+          </view>
+        </view>
+      </block>
+      <view class="empty-state" wx:else>所有学生都已完成！</view>
+    </view>
+  </scroll-view>
+
+  <view class="loading-state" wx:if="{{isLoading}}">加载中...</view>
+</view>

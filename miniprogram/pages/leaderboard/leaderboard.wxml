@@ -1,0 +1,46 @@
+<view class="page-container">
+  <view class="header">
+    <view class="title">群英榜</view>
+    <view class="subtitle">根据平均完成率排名</view>
+  </view>
+
+  <view class="podium" wx:if="{{leaderboardList.length >= 3}}">
+    <view class="podium-item silver">
+      <image class="avatar" src="{{leaderboardList[1].avatarUrl}}"></image>
+      <view class="nickname">{{leaderboardList[1].nickName}}</view>
+      <view class="score">{{leaderboardList[1].avgScore}}分</view>
+      <view class="rank-badge">2</view>
+    </view>
+    <view class="podium-item gold">
+      <image class="avatar" src="{{leaderboardList[0].avatarUrl}}"></image>
+      <view class="nickname">{{leaderboardList[0].nickName}}</view>
+      <view class="score">{{leaderboardList[0].avgScore}}分</view>
+      <view class="rank-badge">1</view>
+    </view>
+    <view class="podium-item bronze">
+      <image class="avatar" src="{{leaderboardList[2].avatarUrl}}"></image>
+      <view class="nickname">{{leaderboardList[2].nickName}}</view>
+      <view class="score">{{leaderboardList[2].avgScore}}分</view>
+      <view class="rank-badge">3</view>
+    </view>
+  </view>
+
+  <view class="rank-list">
+    <block wx:for="{{leaderboardList}}" wx:for-item="player" wx:key="index">
+      <view class="rank-item" wx:if="{{index >= 3}}">
+        <view class="rank-number">{{index + 1}}</view>
+        <image class="rank-avatar" src="{{player.avatarUrl}}"></image>
+        <view class="rank-info">
+          <view class="rank-nickname">{{player.nickName}}</view>
+          <view class="rank-homework-count">已完成 {{player.homeworkCount}} 次作业</view>
+        </view>
+        <view class="rank-score">{{player.avgScore}}分</view>
+      </view>
+    </block>
+  </view>
+
+  <view class="loading-state" wx:if="{{isLoading}}">加载中...</view>
+  <view class="empty-state" wx:if="{{!isLoading && leaderboardList.length === 0}}">
+    还没有人完成作业，快去争夺第一名吧！
+  </view>
+</view>

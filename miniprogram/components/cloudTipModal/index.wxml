@@ -1,0 +1,54 @@
+<view class="page-container">
+  <view class="card-module">
+    <view class="module-title">作业标题</view>
+    <input class="title-input" model:value="{{homeworkTitle}}" placeholder="例如：Unit 1 高频词汇" placeholder-class="placeholder-style" />
+  </view>
+
+  <view class="card-module">
+    <view class="module-title">批量添加单词</view>
+    <textarea class="batch-input" 
+              model:value="{{wordsToParse}}"
+              placeholder="请在此处粘贴或输入多个单词，支持用【换行】、【逗号】或【空格】分隔。\n例如：\napple, banana\nstudy cheat" 
+              placeholder-class="placeholder-style"
+              maxlength="-1"
+              auto-height="true"/>
+    <button class="parse-button" bindtap="parseAndAddWords" hover-class="button-hover" loading="{{isParsing}}">一键智能解析</button>
+  </view>
+
+  <view class="card-module">
+    <view class="module-title-container">
+      <view class="module-title">单词列表</view>
+      <view class="list-hint">（左滑可删除）</view>
+      <view class="word-count">{{wordListForHomework.length}} 词</view>
+    </view>
+    <scroll-view scroll-y="true" class="word-list-container">
+      <view class="word-list">
+        <view class="word-item" 
+              wx:for="{{wordListForHomework}}" 
+              wx:key="id" 
+              data-index="{{index}}"
+              bindtouchstart="touchStart" 
+              bindtouchmove="touchMove" 
+              bindtouchend="touchEnd"
+              style="{{item.style}}">
+          <view class="delete-btn" catchtap="removeWord" data-word="{{item.word}}">
+            <text>删除</text>
+          </view>
+          <view class="word-item-content">
+            <view class="word-info">
+              <text class="word-text">{{item.word}}</text>
+              <text class="phonetics-text">{{item.phonetics}}</text>
+            </view>
+            </view>
+        </view>
+        <view class="empty-list" wx:if="{{wordListForHomework.length === 0}}">
+          <text class="empty-text">列表空空如也，快去添加单词吧</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view class="footer-actions">
+    <button class="publish-button" bindtap="publishHomework" hover-class="button-hover-green">{{isEditMode ? '确认保存' : '确认发布'}}</button>
+  </view>
+</view>

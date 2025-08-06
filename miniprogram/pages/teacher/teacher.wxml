@@ -1,0 +1,56 @@
+<view class="container">
+  <view class="header">
+    <text class="page-title">{{isPreviewMode ? '学生模式预览' : '我的课程'}}</text>
+    <view class="profile-entry" bindtap="goToProfilePage" hover-class="entry-hover">
+      <image class="profile-icon" src="/images/profile.png" mode="aspectFit"></image>
+      <text class="profile-label">个人中心</text>
+    </view>
+  </view>
+
+  <view class="list-title">
+    {{isPreviewMode ? '请选择要体验的课程' : '课程列表'}}
+  </view>
+
+  <view class="homework-list">
+    <view 
+      wx:for="{{homeworkList}}" 
+      wx:key="id" 
+      class="homework-card" 
+      hover-class="card-hover"
+      bindtap="onCardTap" 
+      data-id="{{item.id}}"
+      data-name="{{item.name}}"
+    >
+      <view class="card-content"> 
+        <text class="homework-name">{{item.name}}</text>
+        <text class="word-count">{{item.words.length}} 个单词</text>
+      </view>
+      
+      <view class="card-actions" wx:if="{{!isPreviewMode}}">
+        <view class="action-btn edit-btn" catchtap="goToEditPage" data-id="{{item.id}}">编辑</view>
+        <view class="action-btn delete-btn" catchtap="onDeleteTap" data-id="{{item.id}}">删除</view>
+      </view>
+      <view class="card-actions" wx:else>
+        <view class="action-btn preview-btn">开始体验 →</view>
+      </view>
+    </view>
+    <view class="empty-list" wx:if="{{homeworkList.length === 0}}">
+      <text>还没有任何课程</text>
+      <text>点击右下角“+”开始创建吧</text>
+    </view>
+  </view>
+
+  <block wx:if="{{!isPreviewMode}}">
+    <view class="fab-container" bindtap="goToCreatePage" hover-class="fab-hover">
+      <text class="fab-icon-text">+</text>
+    </view>
+    <view class="student-mode-fixed-btn" bindtap="togglePreviewMode" hover-class="btn-hover">
+      体验学生模式
+    </view>
+  </block>
+  <block wx:else>
+    <view class="student-mode-fixed-btn exit-preview-btn" bindtap="togglePreviewMode" hover-class="btn-hover">
+      退出预览模式
+    </view>
+  </block>
+</view>

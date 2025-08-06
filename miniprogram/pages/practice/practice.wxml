@@ -1,0 +1,23 @@
+<view class="page-container">
+  <view class="header">
+    <view class="page-title">{{pageRole === 'preview' ? '学生模式预览' : '我的作业'}}</view>
+  </view>
+
+  <view class="homework-list" wx:if="{{homeworks.length > 0}}">
+    <view class="homework-card" wx:for="{{homeworks}}" wx:key="id" data-id="{{item.id}}" bindtap="startPractice" hover-class="card-hover">
+      <view class="card-content">
+        <view class="homework-name">{{item.name}}</view>
+        <view class="homework-meta">
+          <text>{{item.wordCount}} 个单词</text>
+          <text class="meta-divider">·</text>
+          <text>预计 {{item.estimatedTime}} 分钟</text>
+        </view>
+      </view>
+      <view class="start-arrow">→</view>
+    </view>
+  </view>
+  <view class="empty-state" wx:else>
+    <text>太棒了！</text>
+    <text>当前没有待完成的作业。</text>
+  </view>
+</view>

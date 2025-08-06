@@ -1,0 +1,140 @@
+/* pages/create/create.wxss */
+.page-container {
+  padding: 32rpx;
+  padding-bottom: 32rpx;
+}
+.card-module {
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  margin-bottom: 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+.module-title { font-size: 40rpx; font-weight: 600; color: #1c1c1e; }
+.title-input { width: 100%; height: 96rpx; font-size: 32rpx; border-bottom: 2rpx solid #e5e5ea; }
+.batch-input { width: 100%; padding: 20rpx; box-sizing: border-box; border: 2rpx solid #e5e5ea; border-radius: 12rpx; font-size: 32rpx; min-height: 200rpx; margin-top: 16rpx; }
+.parse-button { background-color: #007aff; color: #ffffff; border-radius: 12rpx; height: 90rpx; margin-top: 24rpx; width: 100%; display: flex; justify-content: center; align-items: center; }
+.module-title-container { display: flex; align-items: center; margin-bottom: 24rpx; }
+.list-hint { font-size: 24rpx; color: #c7c7cc; margin-left: 16rpx; }
+.word-count { font-size: 28rpx; color: #8e8e93; margin-left: auto; }
+.word-list-container { max-height: 800rpx; }
+.word-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32rpx 0;
+  border-bottom: 2rpx solid #f2f2f7;
+}
+.word-item:last-child { border-bottom: none; }
+.word-info { flex-grow: 1; min-width: 0; display: flex; align-items: baseline; }
+.word-text { font-size: 34rpx; font-weight: 500; }
+.phonetics-text { font-size: 28rpx; color: #8e8e93; margin-left: 16rpx; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.actions-container { display: flex; align-items: center; flex-shrink: 0; }
+.remove-icon {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 50%;
+  background-color: #e5e5ea;
+  color: #8e8e93;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  margin-left: 24rpx;
+  font-weight: bold;
+}
+.empty-list { text-align: center; padding: 80rpx 0; color: #8e8e93; }
+.type-switcher { display: flex; align-items: center; }
+.type-label { font-size: 28rpx; color: #c7c7cc; transition: all 0.2s; padding: 0 12rpx; }
+.type-label.active { color: #1c1c1e; font-weight: 600; }
+switch { transform: scale(0.8); }
+
+
+/* ★★★ 单词编辑浮层样式 ★★★ */
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+.edit-modal {
+  width: 85%;
+  max-width: 600rpx;
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  padding: 40rpx;
+  box-shadow: 0 12rpx 40rpx rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+.modal-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 40rpx;
+}
+.modal-content {
+  margin-bottom: 40rpx;
+}
+.form-item {
+  margin-bottom: 24rpx;
+}
+.form-label {
+  font-size: 28rpx;
+  color: #8e8e93;
+  margin-bottom: 12rpx;
+  display: block;
+}
+/* ▼▼▼ 核心修正点 ▼▼▼ */
+.form-input, .form-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 24rpx; /* 调整了内边距，移除了垂直padding */
+  border: 2rpx solid #e5e5ea;
+  border-radius: 12rpx;
+  font-size: 30rpx;
+  background-color: #f2f2f7;
+  height: 88rpx; /* 明确指定高度 */
+  line-height: 88rpx; /* 确保文字垂直居中 */
+}
+/* ▲▲▲ 核心修正点 ▲▲▲ */
+
+.form-input.disabled {
+  background-color: #e5e5ea;
+  color: #8e8e93;
+}
+.form-textarea {
+  min-height: 200rpx;
+  line-height: 1.6; /* Textarea 使用行高而非固定高度 */
+  height: auto; /* 覆盖上面的固定高度 */
+  padding: 16rpx 24rpx; /* 恢复Textarea的垂直padding */
+}
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+}
+.modal-btn {
+  flex: 1;
+  height: 88rpx;
+  border-radius: 12rpx;
+  font-size: 32rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.modal-btn.cancel {
+  background-color: #e5e5ea;
+  color: #1c1c1e;
+  margin-right: 16rpx;
+}
+.modal-btn.confirm {
+  background-color: #007aff;
+  color: #ffffff;
+}

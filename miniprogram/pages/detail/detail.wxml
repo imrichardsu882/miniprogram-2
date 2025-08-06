@@ -1,0 +1,125 @@
+<view class="page-container" wx:if="{{!isFinished}}">
+  <view class="header">
+    <view class="progress-bar">
+      <view class="progress-bar-inner" style="width: {{progress + '%'}}"></view>
+    </view>
+    <view class="stats">{{currentWordIndex + 1}} / {{totalWords}}</view>
+  </view>
+
+  <view class="question-zone">
+    <block wx:if="{{currentQuestion.type === 'mc'}}">
+      <view class="mc-question-word">{{currentQuestion.word}}</view>
+      <view class="phonetics-area" bindtap="playWordAudio" data-word="{{currentQuestion.word}}">
+        <text class="phonetics">{{currentQuestion.phonetics}}</text>
+        <image class="pronounce-icon" src="/images/pronounce.png"></image>
+      </view>
+      <view class="sentence-hint" wx:if="{{currentQuestion.sentenceHint}}">
+        {{currentQuestion.sentenceHint}}
+      </view>
+    </block>
+    <block wx:if="{{currentQuestion.type === 'sp'}}">
+      <view class="sp-question-word">{{currentQuestion.question}}</view>
+      <view class="sp-question-hint">请根据中文提示，拼写出对应的单词</view>
+    </block>
+  </view>
+
+  <view class="interaction-zone">
+    <block wx:if="{{currentQuestion.type === 'mc'}}">
+      <view class="mc-options-grid">
+        <view 
+          wx:for="{{currentQuestion.options}}" 
+          wx:key="index"
+          class="mc-option-card {{item.status}}"
+          bindtap="onMcOptionTap"
+          data-option-def="{{item.def}}"
+          hover-class="{{isAnswered ? '' : 'card-hover'}}"
+          hover-stay-time="50"
+        >
+          <text class="option-def">{{item.def}}</text>
+          <view class="feedback-icon {{item.status}}">
+            <text wx:if="{{item.status === 'correct'}}">✔</text>
+            <text wx:if="{{item.status === 'incorrect'}}">✕</text>
+          </view>
+        </view>
+      </view>
+    </block>
+    
+    <block wx:if="{{currentQuestion.type === 'sp'}}">
+      <input 
+        class="sp-input {{spellingFeedbackClass}}"
+        placeholder="请输入单词拼写"
+        value="{{userSpellingInput}}"
+        bindinput="onSpellingInput"
+        disabled="{{isAnswered}}"
+      />
+      <button wx:if="{{!isAnswered}}"
+        class="sp-submit-btn {{userSpellingInput ? 'active' : ''}}" 
+        bindtap="onSpellingSubmit"
+        disabled="{{!userSpellingInput || isAnswered}}"
+      >
+        确认
+      </button>
+    </block>
+  </view>
+
+  <view class="footer-feedback {{isAnswered && feedback.type ? 'visible' : ''}}">
+    <view class="feedback-message {{feedback.type}}">{{feedback.message}}</view>
+    <view class="sentence-container" wx:if="{{feedback.type === 'correct' && feedback.sentence}}">
+        <view class="sentence-en">{{feedback.sentence}}</view>
+        <view class="sentence-cn">{{feedback.sentenceTrans}}</view>
+    </view>
+    <button class="continue-btn" bindtap="nextWord">继续 →</button>
+  </view>
+
+  <view class="footer-feedback {{isAnswered && spellingDiff ? 'visible' : ''}}">
+      <view class="feedback-message incorrect">拼写错误</view>
+      <view class="spelling-diff-container">
+        <view class="diff-row">
+          <text class="diff-label">你的输入</text>
+          <view class="diff-word">
+            <text wx:for="{{spellingDiff.userInput}}" wx:key="index" class="char-{{item.status}}">{{item.char}}</text>
+          </view>
+        </view>
+        <view class="diff-row correct-row">
+          <text class="diff-label">正确拼写</text>
+          <view class="diff-word">
+            <text wx:for="{{spellingDiff.correctAnswer}}" wx:key="index" class="char-{{item.status}}">{{item.char}}</text>
+          </view>
+          <view class="phonetics-area" bindtap="playWordAudio" data-word="{{currentQuestion.answer}}">
+            <image class="pronounce-icon" src="/images/pronounce.png"></image>
+          </view>
+        </view>
+      </view>
+      <button class="continue-btn" bindtap="nextWord">继续 →</button>
+  </view>
+</view>
+
+<view class="finish-container" wx:if="{{isFinished}}">
+  <view class="finish-header">
+    <view class="finish-title">太棒了！</view>
+    <view class="finish-subtitle">你已完成本次学习</view>
+    <view class="finish-score-card">
+      <view class="score-value">{{score}}</view>
+      <view class="score-label">正确率</view>
+    </view>
+  </view>
+  
+  <scroll-view scroll-y="true" class="summary-scroll-area">
+    <view class="summary-list-title">学习详情</view>
+    <view class="summary-list">
+      <view class="summary-item" wx:for="{{summaryList}}" wx:key="word">
+        <view class="summary-word-info">
+          <text class="summary-word">{{item.word}}</text>
+          <text class="summary-def">{{item.def}}</text>
+        </view>
+        <view class="summary-status {{item.isCorrect ? 'correct' : 'incorrect'}}">
+          {{item.isCorrect ? '✔' : '✕'}}
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="finish-actions">
+    <button class="finish-btn" bindtap="goBack">返回作业列表</button>
+  </view>
+</view>

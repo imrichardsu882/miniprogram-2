@@ -1,0 +1,11 @@
+<view class="page-container">
+  <view class="profile-card" wx:if="{{userInfo}}">
+    <image class="avatar" src="{{userInfo.avatarUrl}}"></image>
+    <view class="nickname">{{userInfo.nickName}}</view>
+    <view class="role-tag">{{userInfo.role === 'teacher' ? '教师' : '学生'}}</view>
+  </view>
+
+  <view class="logout-btn-container">
+    <button class="logout-btn" bindtap="logout">退出登录</button>
+  </view>
+</view>

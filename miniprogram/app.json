@@ -1,0 +1,23 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/teacher/teacher",
+    "pages/practice/practice",
+    "pages/profile/profile",
+    "pages/report/report",
+    "pages/leaderboard/leaderboard",
+    "pages/example/index",
+    "pages/detail/detail",
+    "pages/create/create"
+  ],
+  "window": {
+    "backgroundColor": "#F6F6F6",
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#F6F6F6",
+    "navigationBarTitleText": "三通英语助手",
+    "navigationBarTextStyle": "black"
+  },
+  "sitemapLocation": "sitemap.json",
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents"
+}

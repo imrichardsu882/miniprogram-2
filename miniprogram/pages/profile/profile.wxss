@@ -1,0 +1,40 @@
+/* pages/profile/profile.wxss */
+page { background-color: #f2f2f7; }
+.page-container { padding: 40rpx; }
+.profile-card {
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  padding: 60rpx 40rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.08);
+}
+.avatar {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  margin-bottom: 32rpx;
+}
+.nickname {
+  font-size: 40rpx;
+  font-weight: 600;
+  color: #1c1c1e;
+}
+.role-tag {
+  font-size: 24rpx;
+  background-color: #007aff;
+  color: white;
+  padding: 4rpx 16rpx;
+  border-radius: 8rpx;
+  margin-top: 16rpx;
+}
+.logout-btn-container {
+  margin-top: 60rpx;
+}
+.logout-btn {
+  background-color: #ffffff;
+  color: #ff3b30;
+  font-size: 32rpx;
+  font-weight: 500;
+}

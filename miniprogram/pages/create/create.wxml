@@ -1,0 +1,64 @@
+<view class="page-container">
+  <view class="card-module">
+    <view class="module-title">作业标题</view>
+    <input class="title-input" value="{{homeworkTitle}}" bindinput="onTitleInput" placeholder="例如：Unit 1 高频词汇" placeholder-class="placeholder-style" />
+  </view>
+  <view class="card-module">
+    <view class="module-title">批量添加单词</view>
+    <textarea class="batch-input" model:value="{{wordsToParse}}" placeholder="请在此处粘贴或输入多个单词，支持用【换行】、【逗号】或【空格】分隔。" placeholder-class="placeholder-style" maxlength="-1" auto-height="true"/>
+    <button class="parse-button" bindtap="parseAndAddWords" hover-class="button-hover" loading="{{isParsing}}">一键智能解析</button>
+  </view>
+
+  <view class="card-module">
+    <view class="module-title-container">
+      <view class="module-title">单词列表</view>
+      <view class="list-hint">（点击单词可编辑）</view>
+      <view class="word-count">{{wordListForHomework.length}} 词</view>
+    </view>
+    <scroll-view scroll-y="true" class="word-list-container">
+      <view class="word-list">
+        <view class="word-item" wx:for="{{wordListForHomework}}" wx:key="id" bindtap="editWord" data-index="{{index}}">
+          <view class="word-info">
+            <text class="word-text">{{item.word}}</text>
+            <text class="phonetics-text">{{item.phonetics}}</text>
+          </view>
+          <view class="actions-container">
+            <view class="type-switcher">
+              <text class="type-label {{item.type === 'mc' ? 'active' : ''}}">选择</text>
+              <switch checked="{{item.type === 'sp'}}" data-index="{{index}}" catchtap="onSwitchChange" bindchange="onTypeChange" color="#34C759"/>
+              <text class="type-label {{item.type === 'sp' ? 'active' : ''}}">拼写</text>
+            </view>
+            <view class="remove-icon" catchtap="removeWord" data-word="{{item.word}}">✕</view>
+          </view>
+        </view>
+        <view class="empty-list" wx:if="{{wordListForHomework.length === 0}}">
+          <text class="empty-text">列表空空如也，快去添加单词吧</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+</view>
+
+<view class="modal-mask" wx:if="{{isEditingWord}}" bindtap="closeEditModal">
+  <view class="edit-modal" catchtap="preventModalClose">
+    <view class="modal-title">编辑单词</view>
+    <view class="modal-content">
+      <view class="form-item">
+        <label class="form-label">单词</label>
+        <input class="form-input disabled" value="{{editingWordData.word}}" disabled="true" />
+      </view>
+      <view class="form-item">
+        <label class="form-label">音标</label>
+        <input class="form-input" value="{{editingWordData.phonetics}}" placeholder="[可选] 请输入音标" bindinput="onEditInput" data-field="phonetics" />
+      </view>
+      <view class="form-item">
+        <label class="form-label">释义</label>
+        <textarea class="form-textarea" value="{{editingWordData.meaningsStr}}" placeholder="每行一个释义，例如：&#10;n. 苹果&#10;adj. 苹果的" bindinput="onEditInput" data-field="meaningsStr" />
+      </view>
+    </view>
+    <view class="modal-actions">
+      <button class="modal-btn cancel" bindtap="closeEditModal">取消</button>
+      <button class="modal-btn confirm" bindtap="saveWordEdit">确认保存</button>
+    </view>
+  </view>
+</view>
