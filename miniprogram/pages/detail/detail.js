@@ -1,4 +1,4 @@
-// pages/detail/detail.js
+// miniprogram/pages/detail/detail.js (最终·无干扰版)
 const storage = require('../../utils/storage.js');
 const { demoCourse } = require('../../utils/demoData.js');
 const correctAudio = wx.createInnerAudioContext();
@@ -13,7 +13,7 @@ Page({
     currentWordIndex: 0,
     currentQuestion: null,
     isAnswered: false,
-    feedback: { type: '', message: '', sentence: null, sentenceTrans: null },
+    feedback: { type: '', message: '', knowledge: null },
     userSpellingInput: '',
     spellingFeedbackClass: '',
     spellingDiff: null, 
@@ -33,11 +33,9 @@ Page({
     errorAudio.src = '/audios/error-05-199276.mp3';
 
     let homework = null;
-    // 关键修正：只有游客(guest)才加载静态数据
-    if (options.id === 'guest_course') {
-      homework = demoCourse;
+    if (options.id === 'guest_course' || options.id === 'preview_course') {
+        homework = demoCourse;
     } else {
-      // 学生(student)和教师预览(preview)都从本地缓存加载真实数据
       const homeworkId = Number(options.id);
       const allHomeworks = storage.loadHomeworks();
       homework = allHomeworks.find(hw => hw.id === homeworkId);
@@ -72,7 +70,7 @@ Page({
       userSpellingInput: '',
       spellingFeedbackClass: '',
       spellingDiff: null,
-      feedback: { type: '', message: '', sentence: null, sentenceTrans: null },
+      feedback: { type: '', message: '', knowledge: null },
       progress: ((currentWordIndex) / this.data.totalWords) * 100,
     }, () => {
       this.playWordAudio(this.data.currentQuestion.word);
@@ -103,12 +101,7 @@ Page({
     const distractors = this.data.homework.words.filter(w => w.word !== wordInfo.word);
     let wrongOptions = this.shuffle(distractors).slice(0, 3).map(w => ({ def: this.aggregateMeanings(w.meanings) }));
     const options = this.shuffle([{ def: correctAnswerDef, status: '' }, ...wrongOptions.map(opt => ({ ...opt, status: '' }))]);
-    this.fetchExampleSentence(wordInfo.word).then(sentenceResult => {
-      if(sentenceResult && sentenceResult.sentence) {
-        this.setData({ 'currentQuestion.sentenceHint': sentenceResult.sentence.replace(new RegExp(wordInfo.word, 'ig'), '______') });
-      }
-    });
-    return { type: 'mc', word: wordInfo.word, phonetics: wordInfo.phonetics, options: options, answer: correctAnswerDef, sentenceHint: null };
+    return { type: 'mc', word: wordInfo.word, phonetics: wordInfo.phonetics, options: options, answer: correctAnswerDef };
   },
 
   generateSpQuestion: function (wordInfo) {
@@ -130,7 +123,7 @@ Page({
 
   handleAnswer: function(isCorrect) {
     const wordInfo = this.data.homework.words[this.data.currentWordIndex];
-    let feedback = {};
+    let feedback = { type: '', message: '' };
 
     const summaryList = this.data.summaryList;
     summaryList.push({ word: wordInfo.word, def: this.aggregateMeanings(wordInfo.meanings), isCorrect: isCorrect });
@@ -141,36 +134,57 @@ Page({
       this.setData({ correctCount: this.data.correctCount + 1 });
       feedback.type = 'correct';
       feedback.message = '回答正确！';
-      this.fetchExampleSentence(wordInfo.word).then(sentenceResult => {
-        if (sentenceResult && sentenceResult.sentence) {
-          feedback.sentence = sentenceResult.sentence;
-          feedback.sentenceTrans = sentenceResult.sentenceTrans;
-        }
-        this.setData({ feedback });
-      }).catch(() => {
-        this.setData({ feedback });
-      });
-    } else {
-      if (errorAudio.src) errorAudio.play();
+
       if (this.data.currentQuestion.type === 'mc') {
-        feedback.type = 'incorrect';
-        feedback.message = '回答错误';
+        this.fetchWordKnowledge(wordInfo.word).then(knowledge => {
+          if (knowledge) {
+            feedback.knowledge = knowledge;
+          }
+          this.setData({ feedback });
+        });
+      } else {
         this.setData({ feedback });
       }
+    } else {
+      if (errorAudio.src) errorAudio.play();
+      feedback.type = 'incorrect';
+      feedback.message = '回答错误';
+      this.setData({ feedback });
     }
   },
 
-  fetchExampleSentence: function(word) {
+  fetchWordKnowledge: function(word) {
     const apiUrl = `https://dict.youdao.com/jsonapi_s?doctype=json&jsonversion=4&q=${word}`;
     return new Promise((resolve) => {
       wx.request({
         url: apiUrl,
         success: (res) => {
           try {
-            const fanyi = res.data.fanyi; if (fanyi && fanyi.tran) { resolve({ sentence: word, sentenceTrans: fanyi.tran }); return; }
-            const blngSents = res.data.blng_sents_part; if (blngSents && blngSents['sentence-pair'] && blngSents['sentence-pair'].length > 0) { const firstSentence = blngSents['sentence-pair'][0]; const sentence = firstSentence.sentence.replace(/<\/?b>/g, ''); const sentenceTrans = firstSentence['sentence-translation']; resolve({ sentence, sentenceTrans }); return; }
+            const data = res.data;
+            let knowledge = {};
+
+            if (data.etym && data.etym.etyms && data.etym.etyms.zh) {
+              knowledge.etymology = data.etym.etyms.zh.value.replace(/<[^>]+>/g, '');
+            }
+            
+            if (data.rel_word && data.rel_word.rels) {
+              knowledge.relations = data.rel_word.rels.map(rel => {
+                const words = rel.words.map(w => w.word).join(', ');
+                return `${rel.rel.name}：${words}`;
+              });
+            }
+
+            if (data.phrs && data.phrs.phrs) {
+              knowledge.phrases = data.phrs.phrs.map(p => {
+                const headword = p.phr.headword.replace(/<\/?i>/g, '');
+                return `${headword} ${p.phr.trs[0].tr.l.i}`;
+              });
+            }
+            
+            resolve(Object.keys(knowledge).length > 0 ? knowledge : null);
+          } catch (e) {
             resolve(null);
-          } catch (e) { resolve(null); }
+          }
         },
         fail: () => { resolve(null); }
       });

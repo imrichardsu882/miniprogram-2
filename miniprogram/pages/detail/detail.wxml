@@ -13,9 +13,6 @@
         <text class="phonetics">{{currentQuestion.phonetics}}</text>
         <image class="pronounce-icon" src="/images/pronounce.png"></image>
       </view>
-      <view class="sentence-hint" wx:if="{{currentQuestion.sentenceHint}}">
-        {{currentQuestion.sentenceHint}}
-      </view>
     </block>
     <block wx:if="{{currentQuestion.type === 'sp'}}">
       <view class="sp-question-word">{{currentQuestion.question}}</view>
@@ -64,10 +61,26 @@
 
   <view class="footer-feedback {{isAnswered && feedback.type ? 'visible' : ''}}">
     <view class="feedback-message {{feedback.type}}">{{feedback.message}}</view>
-    <view class="sentence-container" wx:if="{{feedback.type === 'correct' && feedback.sentence}}">
-        <view class="sentence-en">{{feedback.sentence}}</view>
-        <view class="sentence-cn">{{feedback.sentenceTrans}}</view>
+    
+    <view class="knowledge-container" wx:if="{{feedback.knowledge}}">
+      <view class="knowledge-item" wx:if="{{feedback.knowledge.etymology}}">
+        <view class="knowledge-title">词根词源</view>
+        <view class="knowledge-content">{{feedback.knowledge.etymology}}</view>
+      </view>
+      <view class="knowledge-item" wx:if="{{feedback.knowledge.relations}}">
+        <view class="knowledge-title">派生相关</view>
+        <view class="knowledge-content">
+          <view wx:for="{{feedback.knowledge.relations}}" wx:key="*this">{{item}}</view>
+        </view>
+      </view>
+      <view class="knowledge-item" wx:if="{{feedback.knowledge.phrases}}">
+        <view class="knowledge-title">常用词组</view>
+        <view class="knowledge-content">
+          <view wx:for="{{feedback.knowledge.phrases}}" wx:key="*this">{{item}}</view>
+        </view>
+      </view>
     </view>
+    
     <button class="continue-btn" bindtap="nextWord">继续 →</button>
   </view>
 
