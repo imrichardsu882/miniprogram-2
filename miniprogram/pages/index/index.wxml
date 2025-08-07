@@ -8,14 +8,36 @@
       <view class="title">欢迎使用</view>
       <view class="subtitle">三通英语助手</view>
     </view>
-    <view class="auth-notice">
-      <text>本小程序为内部教学工具，仅限授权师生登录使用。</text>
+
+    <view class="auth-main">
+      <view class="auth-button" bindtap="handleAuth" hover-class="button-hover">
+        <text>微信授权登录</text>
+      </view>
+      <view class="guest-button" bindtap="enterAsGuest">先逛逛 (体验模式)</view>
     </view>
-    <view class="auth-actions">
-        <button class="auth-button" bindtap="handleAuth">微信授权登录</button>
-        <view class="guest-button" bindtap="enterAsGuest">先逛逛 (体验模式)</view>
+
+    <view class="footer-area">
+      <text class="footer-notice">本小程序为内部教学工具，仅限授权师生登录使用。</text>
     </view>
   </view>
+
+  <view wx:if="{{pageState === 'profile'}}" class="state-container profile-setup-container">
+    <view class="header">
+      <view class="title">创建您的学籍档案</view>
+      <view class="subtitle">请设置您在小程序中展示的头像和昵称</view>
+    </view>
+
+    <view class="profile-form">
+      <button class="avatar-wrapper" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
+        <image class="avatar" src="{{avatarUrl || '/images/default-avatar.png'}}"></image>
+      </button>
+      <view class="nickname-label">昵称</view>
+      <input class="nickname-input" type="nickname" placeholder="请输入昵称" value="{{nickname}}" bindinput="onNicknameInput"/>
+    </view>
+
+    <view class="confirm-btn" bindtap="onConfirmProfile">确认并继续</view>
+  </view>
+
 
   <view wx:if="{{pageState === 'role'}}" class="state-container">
     <view class="header">
@@ -48,21 +70,6 @@
         <view class="modal-button cancel" bindtap="onPasswordCancel">取消</view>
         <view class="modal-button-divider"></view>
         <view class="modal-button confirm" bindtap="onPasswordConfirm">确认</view>
-      </view>
-    </view>
-  </view>
-
-  <view class="modal-mask" wx:if="{{showNicknameModal}}" bindtap="onNicknameCancel">
-    <view class="modal-container" catchtap="preventModalClose">
-      <view class="modal-title">创建您的学籍档案</view>
-      <view class="modal-subtitle">请输入您在排行榜上显示的名字</view>
-      <view class="modal-input-wrapper">
-        <input class="modal-input" type="nickname" value="{{nicknameInput}}" bindinput="onNicknameInput" maxlength="20" focus="{{true}}" placeholder="请输入您的昵称"/>
-      </view>
-      <view class="modal-actions">
-        <view class="modal-button cancel" bindtap="onNicknameCancel">取消</view>
-        <view class="modal-button-divider"></view>
-        <view class="modal-button confirm" bindtap="onNicknameConfirm">确认</view>
       </view>
     </view>
   </view>

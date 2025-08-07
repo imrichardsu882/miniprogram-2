@@ -1,4 +1,4 @@
-/* pages/index/index.wxss */
+/* index.wxss (最终·新版授权流程) */
 page {
   background-color: #f2f2f7;
   height: 100%;
@@ -20,15 +20,131 @@ page {
 }
 
 .auth-container {
-  justify-content: space-around;
-  padding: 20% 40rpx;
+  justify-content: space-between; 
+  padding: 15% 40rpx 5% 40rpx;
 }
 
 .header {
   width: 100%;
   text-align: left;
-  margin-bottom: 80rpx;
+  margin-bottom: 0; 
   padding: 0 20rpx;
+}
+
+.auth-main {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.auth-button {
+  min-width: 400rpx; 
+  width: auto; 
+  padding: 0 60rpx; 
+  height: 96rpx;
+  background: #007aff;
+  color: white;
+  font-size: 34rpx;
+  font-weight: 500; 
+  border-radius: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s; 
+}
+
+.button-hover {
+  opacity: 0.9;
+  transform: scale(0.98);
+}
+
+.footer-area {
+  width: 100%;
+  text-align: center;
+}
+
+.guest-button {
+  display: inline-block;
+  margin-bottom: 32rpx;
+  font-size: 28rpx;
+  color: #8e8e93;
+  padding: 16rpx 24rpx;
+  border-radius: 16rpx;
+  transition: background-color 0.2s;
+}
+
+.guest-button:active {
+  background-color: #e5e5ea;
+}
+
+.footer-notice {
+  font-size: 24rpx;
+  color: #c7c7cc;
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* ★★★ 新增：新版授权页样式 ★★★ */
+.profile-setup-container {
+  justify-content: space-around;
+}
+
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.avatar-wrapper {
+  padding: 0;
+  border: 6rpx solid #ffffff;
+  border-radius: 50%;
+  width: 200rpx;
+  height: 200rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.1);
+  margin-bottom: 80rpx;
+}
+
+.avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.nickname-label {
+  width: 100%;
+  text-align: left;
+  font-size: 28rpx;
+  color: #8e8e93;
+  margin-bottom: 16rpx;
+  padding-left: 16rpx;
+}
+
+.nickname-input {
+  width: 100%;
+  height: 96rpx;
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  padding: 0 32rpx;
+  font-size: 32rpx;
+  box-sizing: border-box;
+}
+
+.confirm-btn {
+  width: 100%;
+  height: 96rpx;
+  line-height: 96rpx;
+  background: #007aff;
+  color: white;
+  font-size: 34rpx;
+  border-radius: 24rpx;
+  text-align: center;
+  margin-top: 80rpx;
+}
+.confirm-btn:active {
+  opacity: 0.8;
 }
 
 .title {
@@ -41,27 +157,6 @@ page {
   font-size: 34rpx;
   color: #8e8e93;
   margin-top: 16rpx;
-}
-
-/* ★★★ 新增样式：为满足审核要求增加的说明文本样式 ★★★ */
-.auth-notice {
-  width: 100%;
-  text-align: center;
-  font-size: 24rpx;
-  color: #8e8e93;
-  margin-bottom: 80rpx;
-  padding: 0 40rpx;
-  line-height: 1.6;
-}
-
-.auth-button {
-  width: 100%;
-  height: 96rpx;
-  line-height: 96rpx;
-  background: #007aff;
-  color: white;
-  font-size: 34rpx;
-  border-radius: 24rpx;
 }
 
 .card-list {
