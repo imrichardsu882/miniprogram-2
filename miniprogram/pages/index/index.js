@@ -2,7 +2,7 @@
 const app = getApp();
 const db = wx.cloud.database();
 const usersCollection = db.collection('users');
-const TEACHER_PASSWORD = '123'; // 请记得修改为您自己的正式口令
+const TEACHER_PASSWORD = '333'; // 请记得修改为您自己的正式口令
 
 Page({
   data: {

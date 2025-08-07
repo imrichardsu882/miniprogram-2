@@ -33,14 +33,7 @@ page { background-color: #f2f2f7; }
     margin-top: 4rpx;
 }
 
-.list-title { 
-    font-size: 18px; 
-    font-weight: 600; 
-    color: #1c1c1e; 
-    padding-left: 5px; 
-    margin-bottom: 15px; 
-    margin-top: 20px;
-}
+.list-title { font-size: 18px; font-weight: 600; color: #1c1c1e; padding-left: 5px; margin-bottom: 15px; margin-top: 20px; }
 .homework-list { display: flex; flex-direction: column; gap: 15px; }
 .homework-card { display: flex; align-items: center; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); padding: 20px; transition: transform 0.15s ease-in-out; }
 .card-hover { transform: scale(0.98); }
@@ -48,9 +41,10 @@ page { background-color: #f2f2f7; }
 .homework-name { font-size: 17px; font-weight: 600; color: #1c1c1e; margin-bottom: 5px; }
 .word-count { font-size: 14px; color: #8e8e93; }
 .card-actions { display: flex; align-items: center; }
-.action-btn { font-size: 14px; padding: 8px 14px; border-radius: 8px; margin-left: 10px; }
+.action-btn { font-size: 14px; padding: 8px 14px; border-radius: 8px; margin-left: 10px; font-weight: 500; }
 .edit-btn { background-color: #e5e5ea; color: #007aff; }
 .delete-btn { background-color: #ffe5e5; color: #ff3b30; }
+.preview-btn { background-color: #e5f7ea; color: #34c759; }
 .empty-list { text-align: center; padding: 80rpx 0; color: #8e8e93; font-size: 16px; }
 .empty-list text:last-child { font-size: 14px; margin-top: 5px; }
 
@@ -76,12 +70,17 @@ page { background-color: #f2f2f7; }
     left: 25px;
     bottom: 45px;
     font-size: 14px;
+    font-weight: 500;
     color: #8e8e93;
     background-color: #ffffff;
     padding: 10px 14px;
     border-radius: 12px;
     transition: background-color 0.2s;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.exit-preview-btn {
+    background-color: #444444;
+    color: white;
 }
 .btn-hover {
     background-color: #dcdce1;
