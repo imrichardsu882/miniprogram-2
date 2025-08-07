@@ -1,54 +1,72 @@
-<view class="page-container">
-  <view class="card-module">
-    <view class="module-title">作业标题</view>
-    <input class="title-input" model:value="{{homeworkTitle}}" placeholder="例如：Unit 1 高频词汇" placeholder-class="placeholder-style" />
+<view class="container">
+  <view wx:if="{{pageState === 'loading'}}" class="state-container">
+    <text>正在加载...</text>
   </view>
 
-  <view class="card-module">
-    <view class="module-title">批量添加单词</view>
-    <textarea class="batch-input" 
-              model:value="{{wordsToParse}}"
-              placeholder="请在此处粘贴或输入多个单词，支持用【换行】、【逗号】或【空格】分隔。\n例如：\napple, banana\nstudy cheat" 
-              placeholder-class="placeholder-style"
-              maxlength="-1"
-              auto-height="true"/>
-    <button class="parse-button" bindtap="parseAndAddWords" hover-class="button-hover" loading="{{isParsing}}">一键智能解析</button>
-  </view>
-
-  <view class="card-module">
-    <view class="module-title-container">
-      <view class="module-title">单词列表</view>
-      <view class="list-hint">（左滑可删除）</view>
-      <view class="word-count">{{wordListForHomework.length}} 词</view>
+  <view wx:if="{{pageState === 'auth'}}" class="state-container auth-container">
+    <view class="header">
+      <view class="title">欢迎使用</view>
+      <view class="subtitle">三通英语助手</view>
     </view>
-    <scroll-view scroll-y="true" class="word-list-container">
-      <view class="word-list">
-        <view class="word-item" 
-              wx:for="{{wordListForHomework}}" 
-              wx:key="id" 
-              data-index="{{index}}"
-              bindtouchstart="touchStart" 
-              bindtouchmove="touchMove" 
-              bindtouchend="touchEnd"
-              style="{{item.style}}">
-          <view class="delete-btn" catchtap="removeWord" data-word="{{item.word}}">
-            <text>删除</text>
-          </view>
-          <view class="word-item-content">
-            <view class="word-info">
-              <text class="word-text">{{item.word}}</text>
-              <text class="phonetics-text">{{item.phonetics}}</text>
-            </view>
-            </view>
-        </view>
-        <view class="empty-list" wx:if="{{wordListForHomework.length === 0}}">
-          <text class="empty-text">列表空空如也，快去添加单词吧</text>
+
+    <view class="auth-main">
+      <view class="auth-button" bindtap="handleAuth" hover-class="button-hover">
+        <text>微信授权登录</text>
+      </view>
+    </view>
+
+    <view class="footer-area">
+      <view class="guest-button" bindtap="enterAsGuest">先逛逛 (体验模式)</view>
+      <text class="footer-notice">本小程序为内部教学工具，仅限授权师生登录使用。</text>
+    </view>
+  </view>
+
+  <view wx:if="{{pageState === 'role'}}" class="state-container">
+    <view class="header">
+      <view class="title">欢迎，{{userInfo.nickName}}</view>
+      <view class="subtitle">请选择您的身份</view>
+    </view>
+    <view class="card-list">
+      <view class="role-card teacher-card" hover-class="card-hover" bindtap="onRoleSelect" data-role="teacher">
+        <view class="card-text">
+          <view class="card-title">我是老师</view>
+          <view class="card-description">创建课程，布置作业</view>
         </view>
       </view>
-    </scroll-view>
+      <view class="role-card student-card" hover-class="card-hover" bindtap="onRoleSelect" data-role="student">
+        <view class="card-text">
+          <view class="card-title">我是学生</view>
+          <view class="card-description">开始你的学习之旅</view>
+        </view>
+      </view>
+    </view>
   </view>
 
-  <view class="footer-actions">
-    <button class="publish-button" bindtap="publishHomework" hover-class="button-hover-green">{{isEditMode ? '确认保存' : '确认发布'}}</button>
+  <view class="modal-mask" wx:if="{{showPasswordModal}}" bindtap="onPasswordCancel">
+    <view class="modal-container" catchtap="preventModalClose">
+      <view class="modal-title">请输入教师口令</view>
+      <view class="modal-input-wrapper">
+        <input class="modal-input" type="password" value="{{passwordInput}}" bindinput="onPasswordInput" maxlength="20" focus="{{true}}" placeholder="请输入口令"/>
+      </view>
+      <view class="modal-actions">
+        <view class="modal-button cancel" bindtap="onPasswordCancel">取消</view>
+        <view class="modal-button-divider"></view>
+        <view class="modal-button confirm" bindtap="onPasswordConfirm">确认</view>
+      </view>
+    </view>
+  </view>
+  <view class="modal-mask" wx:if="{{showNicknameModal}}" bindtap="onNicknameCancel">
+    <view class="modal-container" catchtap="preventModalClose">
+      <view class="modal-title">创建您的学籍档案</view>
+      <view class="modal-subtitle">请输入您在排行榜上显示的名字</view>
+      <view class="modal-input-wrapper">
+        <input class="modal-input" type="nickname" value="{{nicknameInput}}" bindinput="onNicknameInput" maxlength="20" focus="{{true}}" placeholder="请输入您的昵称"/>
+      </view>
+      <view class="modal-actions">
+        <view class="modal-button cancel" bindtap="onNicknameCancel">取消</view>
+        <view class="modal-button-divider"></view>
+        <view class="modal-button confirm" bindtap="onNicknameConfirm">确认</view>
+      </view>
+    </view>
   </view>
 </view>

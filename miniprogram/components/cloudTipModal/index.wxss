@@ -1,143 +1,226 @@
-/* pages/create/create.wxss */
+/* index.wxss (最终·居中修正版) */
 page {
   background-color: #f2f2f7;
-  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue',
-    Helvetica, Arial, sans-serif;
+  height: 100%;
 }
-.page-container {
-  padding: 32rpx;
-  padding-bottom: 200rpx;
+
+.container {
+  height: 100%;
 }
-.card-module {
-  background-color: #ffffff;
-  border-radius: 24rpx;
-  padding: 32rpx;
-  margin-bottom: 32rpx;
-  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
-  overflow: hidden;
-}
-.module-title-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24rpx;
-}
-.module-title {
-  font-size: 40rpx;
-  font-weight: 600;
-  color: #1c1c1e;
-  flex-shrink: 0;
-}
-.list-hint {
-  font-size: 24rpx;
-  color: #c7c7cc;
-  font-weight: normal;
-  margin-left: 16rpx;
-  flex-grow: 1;
-}
-.word-count {
-  font-size: 28rpx;
-  color: #8e8e93;
-  font-weight: 500;
-  flex-shrink: 0;
-}
-.placeholder-style {
-  color: #c7c7cc;
-  font-size: 30rpx;
-  line-height: 1.5;
-}
-.title-input {
+
+.state-container {
   width: 100%;
-  height: 96rpx;
-  line-height: 96rpx;
-  font-size: 32rpx;
-  color: #1c1c1e;
-  border-bottom: 2rpx solid #e5e5ea;
-}
-.batch-input {
-  width: 100%;
-  padding: 20rpx;
-  box-sizing: border-box;
-  border: 2rpx solid #e5e5ea;
-  border-radius: 12rpx;
-  font-size: 32rpx;
-  line-height: 1.6;
-  min-height: 200rpx;
-  margin-top: 16rpx;
-}
-.parse-button {
-  background-color: #007aff;
-  color: #ffffff;
-  font-size: 32rpx;
-  font-weight: 500;
-  border-radius: 12rpx;
-  height: 90rpx;
-  margin-top: 24rpx;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.button-hover { background-color: #0056b3; }
-.button-hover-green { opacity: 0.8; }
-.word-list-container { max-height: 600rpx; }
-.word-item {
-  display: flex;
-  position: relative;
-  transition: all 0.3s ease-in-out;
-}
-.word-item-content {
-  width: 100%;
-  padding: 32rpx 0;
-  background-color: #ffffff;
-  position: relative;
-  z-index: 2;
-  border-bottom: 2rpx solid #f2f2f7;
-}
-.word-item:last-child .word-item-content { border-bottom: none; }
-.word-info {
-  display: flex;
-  align-items: baseline;
-}
-.word-text { font-size: 34rpx; font-weight: 500; }
-.phonetics-text { font-size: 28rpx; color: #8e8e93; margin-left: 16rpx; }
-.delete-btn {
-  background-color: #ff3b30;
-  width: 180rpx;
-  position: absolute;
-  top: 0;
-  right: -180rpx;
   height: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-size: 32rpx;
-  z-index: 1;
-}
-.empty-list { text-align: center; padding: 80rpx 0; color: #8e8e93; }
-.footer-actions {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  padding: 24rpx 32rpx;
-  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
-  background-color: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 1rpx solid rgba(0, 0, 0, 0.1);
+  padding: 40rpx;
   box-sizing: border-box;
 }
-.publish-button {
-  background-color: #34c759;
-  color: #ffffff;
+
+.auth-container {
+  justify-content: space-between; 
+  padding: 15% 40rpx 5% 40rpx;
+}
+
+.header {
   width: 100%;
+  text-align: left;
+  margin-bottom: 0; 
+  padding: 0 20rpx;
+}
+
+.auth-main {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.auth-button {
+  min-width: 400rpx; 
+  width: auto; 
+  padding: 0 60rpx; 
   height: 96rpx;
+  background: #007aff;
+  color: white;
   font-size: 34rpx;
-  font-weight: 600;
+  font-weight: 500; 
+  border-radius: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s; 
+}
+
+.button-hover {
+  opacity: 0.9;
+  transform: scale(0.98);
+}
+
+/* ★★★ 核心改造区域 ★★★ */
+.footer-area {
+  width: 100%;
+  text-align: center; /* 使用最基础、最可靠的文本居中 */
+}
+
+.guest-button {
+  display: inline-block; /* 确保能响应 text-align: center */
+  margin-bottom: 32rpx; /* 与下方提示文字的间距 */
+  font-size: 28rpx;
+  color: #8e8e93;
+  padding: 16rpx 24rpx;
   border-radius: 16rpx;
+  transition: background-color 0.2s;
+}
+
+.guest-button:active {
+  background-color: #e5e5ea;
+}
+
+.footer-notice {
+  font-size: 24rpx;
+  color: #c7c7cc;
+  text-align: center;
+  line-height: 1.6;
+}
+/* ★★★ 改造结束 ★★★ */
+
+.title {
+  font-size: 64rpx;
+  font-weight: 700;
+  color: #1c1c1e;
+}
+
+.subtitle {
+  font-size: 34rpx;
+  color: #8e8e93;
+  margin-top: 16rpx;
+}
+
+.card-list {
+  width: 100%;
+}
+
+.role-card {
+  width: 100%;
+  padding: 50rpx 40rpx;
+  border-radius: 32rpx;
+  margin-bottom: 40rpx;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.card-hover {
+  transform: scale(0.97);
+}
+
+.teacher-card {
+  background: linear-gradient(135deg, #007aff, #0056b3);
+}
+
+.student-card {
+  background: linear-gradient(135deg, #34c759, #28a745);
+}
+
+.card-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.card-title {
+  font-size: 40rpx;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.card-description {
+  font-size: 28rpx;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 8rpx;
+}
+
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.4);
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 1000;
+}
+
+.modal-container {
+  width: 80%;
+  max-width: 600rpx;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 28rpx;
+  overflow: hidden;
+}
+
+.modal-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  text-align: center;
+  padding: 40rpx 40rpx 0 40rpx;
+  color: #1c1c1e;
+}
+
+.modal-subtitle {
+  font-size: 28rpx;
+  text-align: center;
+  padding: 16rpx 40rpx 40rpx 40rpx;
+  color: #8e8e93;
+}
+
+.modal-input-wrapper {
+  padding: 0 40rpx 40rpx;
+}
+
+.modal-input {
+  background-color: #e5e5ea;
+  padding: 20rpx;
+  border-radius: 16rpx;
+  text-align: center;
+  font-size: 32rpx;
+}
+
+.modal-actions {
+  display: flex;
+  width: 100%;
+  border-top: 1rpx solid rgba(0, 0, 0, 0.1);
+}
+
+.modal-button {
+  flex: 1;
+  height: 90rpx;
+  line-height: 90rpx;
+  text-align: center;
+  font-size: 34rpx;
+}
+
+.modal-button:active {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.modal-button-divider {
+  width: 1rpx;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.cancel {
+  color: #007aff;
+}
+
+.confirm {
+  color: #007aff;
+  font-weight: 600;
 }
