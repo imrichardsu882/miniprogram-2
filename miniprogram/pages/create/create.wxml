@@ -3,6 +3,7 @@
     <view class="module-title">作业标题</view>
     <input class="title-input" value="{{homeworkTitle}}" bindinput="onTitleInput" placeholder="例如：Unit 1 高频词汇" placeholder-class="placeholder-style" />
   </view>
+
   <view class="card-module">
     <view class="module-title">批量添加单词</view>
     <textarea class="batch-input" model:value="{{wordsToParse}}" placeholder="请在此处粘贴或输入多个单词，支持用【换行】、【逗号】或【空格】分隔。" placeholder-class="placeholder-style" maxlength="-1" auto-height="true"/>
@@ -38,6 +39,8 @@
     </scroll-view>
   </view>
 </view>
+
+<!-- 移除保存按钮，因为现在有自动保存功能 -->
 
 <view class="modal-mask" wx:if="{{isEditingWord}}" bindtap="closeEditModal">
   <view class="edit-modal" catchtap="preventModalClose">

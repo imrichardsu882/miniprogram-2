@@ -1,5 +1,6 @@
-// miniprogram/pages/detail/detail.js (最终·无干扰版)
-const storage = require('../../utils/storage.js');
+// miniprogram/pages/detail/detail.js (最终·错题复习版)
+const db = wx.cloud.database();
+const homeworksCollection = db.collection('homeworks');
 const { demoCourse } = require('../../utils/demoData.js');
 const correctAudio = wx.createInnerAudioContext();
 const errorAudio = wx.createInnerAudioContext();
@@ -16,40 +17,52 @@ Page({
     feedback: { type: '', message: '', knowledge: null },
     userSpellingInput: '',
     spellingFeedbackClass: '',
-    spellingDiff: null, 
+    spellingDiff: null,
     progress: 0,
     correctCount: 0,
     isFinished: false,
     score: '0%',
     summaryList: [],
-    userRole: 'student'
+    userRole: 'student',
+    mistakes: [],          // 错题列表（来自上一轮）
+    reviewMode: false      // 是否处于错题复习模式
   },
 
   onLoad: function (options) {
-    if(options.role) {
+    if (options.role) {
       this.setData({ userRole: options.role });
     }
     correctAudio.src = '/audios/correct-156911.mp3';
     errorAudio.src = '/audios/error-05-199276.mp3';
 
-    let homework = null;
-    if (options.id === 'guest_course' || options.id === 'preview_course') {
-        homework = demoCourse;
-    } else {
-      const homeworkId = Number(options.id);
-      const allHomeworks = storage.loadHomeworks();
-      homework = allHomeworks.find(hw => hw.id === homeworkId);
-    }
+    this.loadSingleHomework(options.id);
+  },
 
-    if (homework && homework.words.length > 0) {
-      this.setData({
-        homework: { ...homework, title: homework.name, words: this.shuffle(homework.words) },
-        totalWords: homework.words.length
-      });
-      this.generateQuestion();
-    } else {
-      wx.showToast({ title: '作业加载失败或为空', icon: 'none' });
+  async loadSingleHomework(id) {
+    wx.showLoading({ title: '加载中...' });
+    let homework = null;
+    try {
+      if (id === 'preview_course' || id === 'guest_course') {
+        homework = demoCourse;
+      } else {
+        const res = await homeworksCollection.doc(id).get();
+        homework = res.data;
+        homework.id = homework._id;
+      }
+      if (homework && homework.words.length > 0) {
+        this.setData({
+          homework: { ...homework, title: homework.name, words: this.shuffle(homework.words) },
+          totalWords: homework.words.length
+        });
+        this.generateQuestion();
+      } else {
+        throw new Error('作业为空');
+      }
+    } catch (err) {
+      wx.showToast({ title: '作业加载失败', icon: 'none' });
       setTimeout(() => wx.navigateBack(), 1500);
+    } finally {
+      wx.hideLoading();
     }
   },
 
@@ -63,7 +76,7 @@ Page({
     } else {
       question = this.generateSpQuestion(wordInfo);
     }
-    
+
     this.setData({
       currentQuestion: question,
       isAnswered: false,
@@ -71,7 +84,7 @@ Page({
       spellingFeedbackClass: '',
       spellingDiff: null,
       feedback: { type: '', message: '', knowledge: null },
-      progress: ((currentWordIndex) / this.data.totalWords) * 100,
+      progress: (currentWordIndex / this.data.totalWords) * 100
     }, () => {
       this.playWordAudio(this.data.currentQuestion.word);
     });
@@ -95,7 +108,7 @@ Page({
     if (finalString.length > maxLength + 5) return finalString.substring(0, maxLength + 2) + '...';
     return finalString;
   },
-  
+
   generateMcQuestion: function (wordInfo) {
     const correctAnswerDef = this.aggregateMeanings(wordInfo.meanings);
     const distractors = this.data.homework.words.filter(w => w.word !== wordInfo.word);
@@ -107,8 +120,8 @@ Page({
   generateSpQuestion: function (wordInfo) {
     return { type: 'sp', word: wordInfo.word, phonetics: wordInfo.phonetics, question: this.aggregateMeanings(wordInfo.meanings), answer: wordInfo.word };
   },
-  
-  playWordAudio: function(eventOrWord) {
+
+  playWordAudio: function (eventOrWord) {
     let wordToPlay = '';
     if (typeof eventOrWord === 'string') {
       wordToPlay = eventOrWord;
@@ -121,7 +134,7 @@ Page({
     }
   },
 
-  handleAnswer: function(isCorrect) {
+  handleAnswer: function (isCorrect) {
     const wordInfo = this.data.homework.words[this.data.currentWordIndex];
     let feedback = { type: '', message: '' };
 
@@ -153,7 +166,7 @@ Page({
     }
   },
 
-  fetchWordKnowledge: function(word) {
+  fetchWordKnowledge: function (word) {
     const apiUrl = `https://dict.youdao.com/jsonapi_s?doctype=json&jsonversion=4&q=${word}`;
     return new Promise((resolve) => {
       wx.request({
@@ -166,7 +179,7 @@ Page({
             if (data.etym && data.etym.etyms && data.etym.etyms.zh) {
               knowledge.etymology = data.etym.etyms.zh.value.replace(/<[^>]+>/g, '');
             }
-            
+
             if (data.rel_word && data.rel_word.rels) {
               knowledge.relations = data.rel_word.rels.map(rel => {
                 const words = rel.words.map(w => w.word).join(', ');
@@ -180,7 +193,7 @@ Page({
                 return `${headword} ${p.phr.trs[0].tr.l.i}`;
               });
             }
-            
+
             resolve(Object.keys(knowledge).length > 0 ? knowledge : null);
           } catch (e) {
             resolve(null);
@@ -206,7 +219,7 @@ Page({
     this.handleAnswer(isCorrect);
   },
 
-  onSpellingSubmit: function() {
+  onSpellingSubmit: function () {
     if (this.data.isAnswered || !this.data.userSpellingInput) return;
     wx.vibrateShort({ type: 'light' });
     const userAnswer = this.data.userSpellingInput.trim().toLowerCase();
@@ -222,15 +235,15 @@ Page({
     }
   },
 
-  generateSpellingDiff: function(userInput, correctAnswer) {
+  generateSpellingDiff: function (userInput, correctAnswer) {
     const userChars = userInput.split('');
     const correctChars = correctAnswer.split('');
     const maxLength = Math.max(userChars.length, correctChars.length);
     let diffResult = [];
     for (let i = 0; i < maxLength; i++) {
       const userChar = userChars[i]; const correctChar = correctChars[i];
-      if (userChar && userChar === correctChar) { diffResult.push({ char: userChar, status: 'correct' }); } 
-      else { if(userChar) { diffResult.push({ char: userChar, status: 'incorrect' }); } }
+      if (userChar && userChar === correctChar) { diffResult.push({ char: userChar, status: 'correct' }); }
+      else { if (userChar) { diffResult.push({ char: userChar, status: 'incorrect' }); } }
     }
     return { userInput: diffResult, correctAnswer: correctChars.map(char => ({ char: char, status: 'correct' })) };
   },
@@ -243,39 +256,123 @@ Page({
     }
   },
 
-  finishPractice: function() {
+  finishPractice: function () {
     const score = this.data.totalWords > 0 ? Math.round((this.data.correctCount / this.data.totalWords) * 100) : 100;
+    const mistakes = this.data.summaryList.filter(item => !item.isCorrect);
 
     this.setData({
-      progress: 100, 
+      progress: 100,
       isFinished: true,
-      score: score + '%'
+      score: score + '%',
+      mistakes: mistakes
     });
 
-    if (this.data.userRole === 'student' && app.globalData.userInfo && app.globalData.userInfo._openid) {
-      const db = wx.cloud.database();
+    if (this.data.userRole === 'student'
+      && this.data.homework.id !== 'preview_course'
+      && this.data.homework.id !== 'guest_course'
+      && app.globalData.userInfo
+      && app.globalData.userInfo._openid) {
       db.collection('homework_records').add({
         data: {
           homeworkId: this.data.homework.id,
           homeworkTitle: this.data.homework.title,
+          userId: app.globalData.userInfo._id || app.globalData.userInfo._openid,
+          userOpenId: app.globalData.userInfo._openid,
+          userName: app.globalData.userInfo.nickName || '未知用户',
           score: score,
           totalWords: this.data.totalWords,
           correctCount: this.data.correctCount,
-          completionTime: new Date()
+          completionTime: new Date(),
+          recordType: this.data.reviewMode ? 'mistake_review' : 'practice'
         },
-        success: res => { console.log('[数据库] [新增功勋记录] 成功, 记录 _id: ', res._id) },
-        fail: err => { console.error('[数据库] [新增功勋记录] 失败：', err) }
+        success: res => { console.log('[数据库] [新增练习记录] 成功, 记录 _id: ', res._id); },
+        fail: err => { console.error('[数据库] [新增练习记录] 失败：', err); }
       });
     }
   },
 
-  goBack: function() { wx.navigateBack(); },
-  
+  // 底部操作栏：再练一次
+  retryPractice: function () {
+    wx.showModal({
+      title: '确认重新练习',
+      content: '确定要重新开始这次练习吗？',
+      success: (res) => {
+        if (res.confirm) {
+          this.setData({
+            reviewMode: false,
+            homework: { ...this.data.homework, title: (this.data.homework.name || this.data.homework.title) },
+            currentWordIndex: 0,
+            correctCount: 0,
+            isFinished: false,
+            score: '0%',
+            summaryList: [],
+            mistakes: [],
+            progress: 0,
+            totalWords: this.data.homework.words.length
+          });
+          this.generateQuestion();
+        }
+      }
+    });
+  },
+
+  // 底部操作栏：错题复习
+  viewMistakes: function () {
+    if (this.data.mistakes.length === 0) {
+      wx.showToast({ title: '没有错题', icon: 'none' });
+      return;
+    }
+    wx.showModal({
+      title: '错题复习',
+      content: `您有 ${this.data.mistakes.length} 个错题需要复习，是否开始错题练习？`,
+      confirmText: '开始复习',
+      success: (res) => {
+        if (res.confirm) {
+          this.startMistakeReview();
+        }
+      }
+    });
+  },
+
+  // 启动仅包含错题的新一轮练习（留在本页）
+  startMistakeReview: function () {
+    const mistakeWordsSet = new Set(this.data.summaryList.filter(item => !item.isCorrect).map(item => item.word));
+    if (mistakeWordsSet.size === 0) {
+      wx.showToast({ title: '没有需要复习的错题', icon: 'none' });
+      return;
+    }
+    const mistakeWords = this.data.homework.words.filter(w => mistakeWordsSet.has(w.word));
+    const newHomework = {
+      ...this.data.homework,
+      title: (this.data.homework.title || this.data.homework.name) + '（错题复习）',
+      words: this.shuffle(mistakeWords)
+    };
+    this.setData({
+      reviewMode: true,
+      homework: newHomework,
+      totalWords: mistakeWords.length,
+      currentWordIndex: 0,
+      correctCount: 0,
+      isFinished: false,
+      score: '0%',
+      summaryList: [],
+      mistakes: [],
+      progress: 0
+    }, () => {
+      this.generateQuestion();
+    });
+  },
+
+  goBack: function () { wx.navigateBack(); },
+
   shuffle: function (array) {
     let newArr = [...array];
-    for (let i = newArr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [newArr[i], newArr[j]] = [newArr[j], newArr[i]]; }
+    for (let i = newArr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+    }
     return newArr;
   },
 
-  onSpellingInput: function(e) { this.setData({ userSpellingInput: e.detail.value }); },
+  onSpellingInput: function (e) { this.setData({ userSpellingInput: e.detail.value }); }
 });

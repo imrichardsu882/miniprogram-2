@@ -1,53 +1,54 @@
-// miniprogram/pages/practice/practice.js (最终·智能加载版)
-const storage = require('../../utils/storage.js');
-const { demoCourse } = require('../../utils/demoData.js'); // 导入共享数据
-const app = getApp();
+// miniprogram/pages/practice/practice.js (口令版·云函数容错)
+const db = wx.cloud.database();
+const homeworksCollection = db.collection('homeworks');
+const { demoCourse } = require('../../utils/demoData.js');
 
 Page({
   data: {
     homeworks: [],
-    pageRole: 'student' // 默认为学生
+    pageRole: 'student'
   },
 
   onLoad: function (options) {
-    const role = options.role || 'student'; 
+    const role = options.role || 'student';
     this.setData({ pageRole: role });
     this.loadHomeworks(role);
   },
 
-  loadHomeworks: function(role) {
+  async loadHomeworks(role) {
+    wx.showLoading({ title: '加载中...' });
     let homeworksToShow = [];
+    try {
+      // 优先用云函数（统一环境、规避端侧规则差异）
+      const res = await wx.cloud.callFunction({ name: 'listHomeworks' });
+      const ok = res && res.result && res.result.ok;
+      const realHomeworks = ok ? (res.result.data || []) : [];
 
-    // ★★★ 核心改造：实现智能加载逻辑 ★★★
-    if (role === 'guest') {
-      // 游客模式：优先加载真实作业，如果真实作业为空，则加载体验课程作为保底
-      const realHomeworks = storage.loadHomeworks();
-      if (realHomeworks && realHomeworks.length > 0) {
-        homeworksToShow = realHomeworks;
+      if (role === 'guest' || role === 'preview') {
+        homeworksToShow = realHomeworks.length > 0 ? realHomeworks : [demoCourse];
       } else {
-        homeworksToShow = [demoCourse];
+        // 学生端：云函数没数据就用空列表（或你也可改成体验模式）
+        homeworksToShow = realHomeworks;
       }
-    } else if (role === 'preview') {
-      // 老师预览模式：也采用和游客一样的逻辑，优先真实，否则保底
-      const realHomeworks = storage.loadHomeworks();
-      if (realHomeworks && realHomeworks.length > 0) {
-        homeworksToShow = realHomeworks;
-      } else {
+    } catch (err) {
+      // 云函数不可用（未部署/权限/网络），进入安全降级
+      if (role === 'guest' || role === 'preview') {
         homeworksToShow = [demoCourse];
+      } else {
+        // 也可改成体验数据：homeworksToShow = [demoCourse];
+        wx.showToast({ title: '作业加载失败', icon: 'none' });
       }
     }
-    else {
-      // 正式学生：只加载真实作业
-      homeworksToShow = storage.loadHomeworks();
-    }
-    
-    const enhancedHomeworks = homeworksToShow.map(hw => ({
+
+    const enhancedHomeworks = (homeworksToShow || []).map(hw => ({
       ...hw,
-      wordCount: hw.words.length,
-      estimatedTime: Math.ceil(hw.words.length * 20 / 60)
-    })).reverse();
+      id: hw._id || hw.id,
+      wordCount: (hw.words || []).length,
+      estimatedTime: Math.ceil(((hw.words || []).length * 20) / 60)
+    }));
 
     this.setData({ homeworks: enhancedHomeworks });
+    wx.hideLoading();
   },
 
   startPractice: function (e) {

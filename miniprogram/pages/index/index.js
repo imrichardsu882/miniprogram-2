@@ -1,22 +1,32 @@
-// index.js (最终·功能完整版)
+// index.js（口令授权版）
 const app = getApp();
 const db = wx.cloud.database();
 const usersCollection = db.collection('users');
-const TEACHER_PASSWORD = '333'; 
+const TEACHER_PASSWORD = '333';
+
+// 本地口令授权令牌：7天有效
+function grantTeacherAuth() {
+  const token = { ok: true, exp: Date.now() + 7 * 24 * 60 * 60 * 1000 };
+  wx.setStorageSync('teacherAuth', token);
+}
+function isTeacherAuthed() {
+  const t = wx.getStorageSync('teacherAuth');
+  return !!(t && t.ok && t.exp > Date.now());
+}
 
 Page({
   data: {
     pageState: 'loading',
     userInfo: null,
     showPasswordModal: false,
-    passwordInput: '', // 确保 passwordInput 字段存在
-    
+    passwordInput: '',
+
     avatarUrl: '',
     nickname: '',
     openid: ''
   },
 
-  onLoad: function () {
+  onLoad() {
     this.checkLoginState();
   },
 
@@ -29,7 +39,7 @@ Page({
       } else {
         this.setData({ pageState: 'auth' });
       }
-    } catch (e) {
+    } catch {
       this.setData({ pageState: 'auth' });
     }
   },
@@ -45,63 +55,49 @@ Page({
         const userInfo = getRes.data[0];
         wx.setStorageSync('userInfo', userInfo);
         app.globalData.userInfo = userInfo;
-        this.setData({ userInfo, pageState: 'role' }); 
+        this.setData({ userInfo, pageState: 'role' });
       } else {
         this.setData({ openid, pageState: 'profile' });
       }
-    } catch (err) {
+    } catch {
       wx.showToast({ title: '认证失败', icon: 'none' });
     } finally {
       wx.hideLoading();
     }
   },
 
-  onChooseAvatar(e) {
-    this.setData({ avatarUrl: e.detail.avatarUrl });
-  },
+  onChooseAvatar(e) { this.setData({ avatarUrl: e.detail.avatarUrl }); },
+  onNicknameInput(e) { this.setData({ nickname: e.detail.value }); },
 
-  // ★★★ 核心修正：恢复被意外删除的 onNicknameInput 函数 ★★★
-  onNicknameInput(e) {
-    this.setData({ nickname: e.detail.value });
-  },
-  
   async onConfirmProfile() {
-    if (!this.data.avatarUrl) { return wx.showToast({ title: '请选择头像', icon: 'none' }); }
-    if (!this.data.nickname.trim()) { return wx.showToast({ title: '请输入昵称', icon: 'none' }); }
+    if (!this.data.avatarUrl) return wx.showToast({ title: '请选择头像', icon: 'none' });
+    if (!this.data.nickname.trim()) return wx.showToast({ title: '请输入昵称', icon: 'none' });
 
     wx.showLoading({ title: '正在创建档案...' });
-
     try {
       const uploadRes = await wx.cloud.uploadFile({
         cloudPath: `avatars/${this.data.openid}-${Date.now()}.png`,
         filePath: this.data.avatarUrl,
       });
-
-      const cloudAvatarUrl = uploadRes.fileID;
-
       const userData = {
         _openid: this.data.openid,
         nickName: this.data.nickname.trim(),
-        avatarUrl: cloudAvatarUrl,
+        avatarUrl: uploadRes.fileID,
         role: null,
         createTime: new Date()
       };
-
       await usersCollection.add({ data: userData });
-      
       wx.setStorageSync('userInfo', userData);
       app.globalData.userInfo = userData;
-      
-      this.setData({ userInfo: userData, pageState: 'role' }); 
-
-    } catch (err) {
+      this.setData({ userInfo: userData, pageState: 'role' });
+    } catch {
       wx.showToast({ title: '创建失败', icon: 'none' });
     } finally {
       wx.hideLoading();
     }
   },
 
-  enterAsGuest: function() {
+  enterAsGuest() {
     app.globalData.userInfo = { role: 'guest', nickName: '游客' };
     wx.navigateTo({ url: '/pages/practice/practice?role=guest' });
   },
@@ -109,55 +105,53 @@ Page({
   async onRoleSelect(e) {
     const role = e.currentTarget.dataset.role;
     if (role === 'teacher') {
-      if (this.data.userInfo.role === 'teacher') {
+      // 只看本地口令是否通过，不再依赖数据库角色
+      if (isTeacherAuthed()) {
         this.navigateToPage('teacher');
       } else {
         this.setData({ showPasswordModal: true, passwordInput: '' });
       }
     } else {
-      if (this.data.userInfo.role === null) {
+      // 学生端按原逻辑：首次完善档案时把 role 写成 student（可选）
+      if (this.data.userInfo && this.data.userInfo.role === null) {
         await this.updateUserRole('student');
       }
       this.navigateToPage('student');
     }
   },
-  
+
   async onPasswordConfirm() {
     if (this.data.passwordInput === TEACHER_PASSWORD) {
-      wx.showLoading({ title: '正在授权...' });
-      try {
-        await this.updateUserRole('teacher');
-        this.setData({ showPasswordModal: false });
-        this.navigateToPage('teacher');
-      } catch(e) {
-        wx.showToast({ title: '授权失败', icon: 'none' });
-      } finally {
-        wx.hideLoading();
-      }
+      grantTeacherAuth();
+      this.setData({ showPasswordModal: false, passwordInput: '' });
+      this.navigateToPage('teacher');
     } else {
       wx.showToast({ title: '口令错误', icon: 'error' });
     }
   },
-  
+  onPasswordInput(e) { this.setData({ passwordInput: e.detail.value }); },
+  onPasswordCancel() { this.setData({ showPasswordModal: false }); },
+
+  // 仅用于把 null -> student（可保留/可删除）
   async updateUserRole(role) {
-    await db.collection('users').doc(this.data.userInfo._openid).update({ data: { role: role } });
-    const updatedUserInfo = { ...this.data.userInfo, role: role };
-    wx.setStorageSync('userInfo', updatedUserInfo);
-    app.globalData.userInfo = updatedUserInfo;
-    this.setData({ userInfo: updatedUserInfo });
+    const userInfo = this.data.userInfo;
+    if (!userInfo) return;
+    if (userInfo._id) {
+      await db.collection('users').doc(userInfo._id).update({ data: { role } });
+    } else {
+      const res = await usersCollection.where({ _openid: userInfo._openid }).get();
+      if (res.data.length > 0) {
+        await usersCollection.doc(res.data[0]._id).update({ data: { role } });
+      }
+    }
+    const updated = { ...this.data.userInfo, role };
+    wx.setStorageSync('userInfo', updated);
+    app.globalData.userInfo = updated;
+    this.setData({ userInfo: updated });
   },
 
   navigateToPage(role) {
     const url = role === 'teacher' ? '/pages/teacher/teacher' : '/pages/practice/practice?role=student';
-    wx.navigateTo({ url }); 
-  },
-  
-  // ★★★ 核心修正：恢复被意外删除的 onPasswordInput 函数 ★★★
-  onPasswordInput(e) {
-    this.setData({
-      passwordInput: e.detail.value
-    });
-  },
-  
-  onPasswordCancel() { this.setData({ showPasswordModal: false }); },
+    wx.navigateTo({ url });
+  }
 });
