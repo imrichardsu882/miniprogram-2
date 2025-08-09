@@ -1,10 +1,6 @@
 <view class="container">
   <view class="header">
     <text class="page-title">{{isPreviewMode ? '学生模式预览' : '我的课程'}}</text>
-    <view class="profile-entry" bindtap="goToProfilePage" hover-class="entry-hover">
-      <image class="profile-icon" src="/images/profile.png" mode="aspectFit"></image>
-      <text class="profile-label">个人中心</text>
-    </view>
   </view>
 
   <view class="list-title">

@@ -73,6 +73,11 @@ Page({
       }
       var failedCount = newWords.length - successfulWords.length;
       if (failedCount > 0) wx.showToast({ title: failedCount + '个词未找到', icon: 'none' });
+    }).catch(function(error) {
+      console.error('解析单词失败:', error);
+      that.setData({ isParsing: false });
+      wx.hideLoading();
+      wx.showToast({ title: '解析失败，请重试', icon: 'none' });
     });
   },
 

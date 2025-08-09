@@ -29,6 +29,132 @@ page { background-color: #f2f2f7; }
   border-radius: 8rpx;
   margin-top: 16rpx;
 }
+
+/* 个性签名区域 */
+.signature-section {
+  width: 100%;
+  margin-top: 32rpx;
+  padding-top: 32rpx;
+  border-top: 2rpx solid #f3f4f6;
+}
+
+.signature-label {
+  font-size: 28rpx;
+  color: #6b7280;
+  margin-bottom: 16rpx;
+  text-align: center;
+}
+
+.signature-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-height: 60rpx;
+}
+
+.signature-text {
+  font-size: 30rpx;
+  color: #1c1c1e;
+  font-style: italic;
+  text-align: center;
+  max-width: 400rpx;
+}
+
+.signature-placeholder {
+  font-size: 28rpx;
+  color: #8e8e93;
+  text-align: center;
+}
+
+.edit-icon {
+  position: absolute;
+  right: -40rpx;
+  font-size: 24rpx;
+  padding: 8rpx;
+}
+
+.signature-edit {
+  width: 100%;
+}
+
+.signature-input {
+  width: 100%;
+  padding: 16rpx 20rpx;
+  border: 2rpx solid #e5e7eb;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  text-align: center;
+  background: #f9fafb;
+}
+
+.signature-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 16rpx;
+  justify-content: center;
+}
+
+.action-btn {
+  padding: 12rpx 32rpx;
+  border-radius: 20rpx;
+  font-size: 26rpx;
+  font-weight: 500;
+  border: none;
+}
+
+.cancel-btn {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.save-btn {
+  background: #007aff;
+  color: white;
+}
+
+/* 学习统计卡片 */
+.stats-card {
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  padding: 40rpx;
+  margin-top: 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.08);
+}
+
+.stats-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1c1c1e;
+  text-align: center;
+  margin-bottom: 32rpx;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24rpx;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 24rpx 16rpx;
+  background: #f8f9fa;
+  border-radius: 16rpx;
+}
+
+.stat-value {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #007aff;
+  margin-bottom: 8rpx;
+}
+
+.stat-label {
+  font-size: 24rpx;
+  color: #6b7280;
+}
+
 .logout-btn-container {
   margin-top: 60rpx;
 }

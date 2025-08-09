@@ -3,6 +3,53 @@
     <image class="avatar" src="{{userInfo.avatarUrl}}"></image>
     <view class="nickname">{{userInfo.nickName}}</view>
     <view class="role-tag">{{userInfo.role === 'teacher' ? '教师' : '学生'}}</view>
+    
+    <!-- 个性签名区域 -->
+    <view class="signature-section">
+      <view class="signature-label">个性签名</view>
+      <view class="signature-display" wx:if="{{!editingSignature}}">
+        <text class="signature-text" wx:if="{{userInfo.sign}}">{{userInfo.sign}}</text>
+        <text class="signature-placeholder" wx:else>点击设置个性签名</text>
+        <view class="edit-icon" bindtap="startEditSignature">✏️</view>
+      </view>
+      <view class="signature-edit" wx:else>
+        <input 
+          class="signature-input" 
+          value="{{signatureInput}}" 
+          placeholder="输入你的个性签名（最多20字）"
+          maxlength="20"
+          bindinput="onSignatureInput"
+          focus="{{editingSignature}}"
+        />
+        <view class="signature-actions">
+          <button class="action-btn cancel-btn" bindtap="cancelEditSignature">取消</button>
+          <button class="action-btn save-btn" bindtap="saveSignature">保存</button>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 学习统计卡片 -->
+  <view class="stats-card" wx:if="{{userStats}}">
+    <view class="stats-title">我的学习统计</view>
+    <view class="stats-grid">
+      <view class="stat-item">
+        <view class="stat-value">{{userStats.totalHomeworks}}</view>
+        <view class="stat-label">完成作业</view>
+      </view>
+      <view class="stat-item">
+        <view class="stat-value">{{userStats.avgScore}}</view>
+        <view class="stat-label">平均分</view>
+      </view>
+      <view class="stat-item">
+        <view class="stat-value">{{userStats.totalTime}}</view>
+        <view class="stat-label">学习时长</view>
+      </view>
+      <view class="stat-item">
+        <view class="stat-value">{{userStats.bestRank}}</view>
+        <view class="stat-label">最佳排名</view>
+      </view>
+    </view>
   </view>
 
   <view class="logout-btn-container">

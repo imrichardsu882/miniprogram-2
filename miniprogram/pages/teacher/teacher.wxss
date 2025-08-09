@@ -8,6 +8,14 @@ page { background-color: #f2f2f7; }
     justify-content: space-between;
     align-items: center;
 }
+.refresh-btn {
+    font-size: 14px;
+    color: #007aff;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background-color: #f0f8ff;
+    border: 1px solid #007aff;
+}
 .page-title { 
     font-size: 34px; 
     font-weight: bold; 

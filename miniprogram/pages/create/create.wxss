@@ -1,7 +1,63 @@
 /* pages/create/create.wxss */
 .page-container {
   padding: 32rpx;
-  padding-bottom: 32rpx;
+  padding-bottom: 32rpx; /* 移除悬浮按钮空间 */
+}
+
+/* 自动保存控制栏样式 */
+.auto-save-bar {
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  padding: 24rpx 32rpx;
+  margin-bottom: 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.auto-save-control {
+  display: flex;
+  align-items: center;
+}
+
+.auto-save-label {
+  font-size: 32rpx;
+  color: #1c1c1e;
+  margin-right: 16rpx;
+  font-weight: 500;
+}
+
+.auto-save-status {
+  flex: 1;
+  text-align: right;
+}
+
+.status-text {
+  font-size: 28rpx;
+  padding: 8rpx 16rpx;
+  border-radius: 8rpx;
+  display: inline-block;
+}
+
+.status-text.saving {
+  color: #007aff;
+  background-color: #e3f2fd;
+}
+
+.status-text.saved {
+  color: #34c759;
+  background-color: #e8f5e8;
+}
+
+.status-text.failed {
+  color: #ff3b30;
+  background-color: #ffebee;
+}
+
+.status-text.unsaved {
+  color: #ff9500;
+  background-color: #fff3e0;
 }
 .card-module {
   background-color: #ffffff;
@@ -138,3 +194,93 @@ switch { transform: scale(0.8); }
   background-color: #007aff;
   color: #ffffff;
 }
+
+/* 释义标签编辑样式 */
+.meaning-hint {
+  font-size: 24rpx;
+  color: #8e8e93;
+  font-weight: normal;
+}
+
+.meanings-tags-container {
+  margin-top: 16rpx;
+  margin-bottom: 24rpx;
+}
+
+.meaning-tag {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 20rpx;
+  margin-bottom: 12rpx;
+  border-radius: 12rpx;
+  border: 2rpx solid #e5e5ea;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.meaning-tag.selected {
+  background-color: #e8f5e8;
+  border-color: #34c759;
+}
+
+.meaning-tag.unselected {
+  background-color: #ffebee;
+  border-color: #ff3b30;
+  opacity: 0.7;
+}
+
+.meaning-text {
+  flex: 1;
+  font-size: 28rpx;
+  line-height: 1.4;
+  padding-right: 16rpx;
+}
+
+.meaning-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  font-size: 24rpx;
+  font-weight: bold;
+}
+
+.keep-icon {
+  color: #34c759;
+  background-color: rgba(52, 199, 89, 0.1);
+  border-radius: 50%;
+  width: 32rpx;
+  height: 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.remove-icon {
+  color: #ff3b30;
+  background-color: rgba(255, 59, 48, 0.1);
+  border-radius: 50%;
+  width: 32rpx;
+  height: 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-mode-toggle {
+  text-align: center;
+  margin: 16rpx 0;
+}
+
+.toggle-text {
+  color: #007aff;
+  font-size: 28rpx;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+
+

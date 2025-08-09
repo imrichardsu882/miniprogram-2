@@ -1,8 +1,5 @@
 /* index.wxss (最终·居中修正版) */
-page {
-  background-color: #f2f2f7;
-  height: 100%;
-}
+/* 注意：组件样式中不能使用 page 选择器 */
 
 .container {
   height: 100%;

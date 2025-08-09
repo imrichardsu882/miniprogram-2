@@ -1,4 +1,19 @@
 <view class="page-container">
+  <!-- 自动保存控制栏 -->
+  <view class="auto-save-bar">
+    <view class="auto-save-control">
+      <text class="auto-save-label">自动保存</text>
+      <switch checked="{{autoSaveEnabled}}" bindchange="toggleAutoSave" color="#34C759" />
+    </view>
+    <view class="auto-save-status">
+      <text wx:if="{{autoSaveStatus === 'saving'}}" class="status-text saving">正在保存...</text>
+      <text wx:elif="{{autoSaveStatus === 'saved'}}" class="status-text saved">已保存 {{lastSaveTime}}</text>
+      <text wx:elif="{{autoSaveStatus === 'failed'}}" class="status-text failed">保存失败，请检查网络</text>
+      <text wx:elif="{{hasUnsavedChanges && autoSaveEnabled}}" class="status-text unsaved">有未保存更改</text>
+      <text wx:elif="{{!autoSaveEnabled && hasUnsavedChanges}}" class="status-text unsaved">自动保存已关闭</text>
+    </view>
+  </view>
+
   <view class="card-module">
     <view class="module-title">作业标题</view>
     <input class="title-input" value="{{homeworkTitle}}" bindinput="onTitleInput" placeholder="例如：Unit 1 高频词汇" placeholder-class="placeholder-style" />
@@ -6,7 +21,7 @@
 
   <view class="card-module">
     <view class="module-title">批量添加单词</view>
-    <textarea class="batch-input" model:value="{{wordsToParse}}" placeholder="请在此处粘贴或输入多个单词，支持用【换行】、【逗号】或【空格】分隔。" placeholder-class="placeholder-style" maxlength="-1" auto-height="true"/>
+    <textarea class="batch-input" model:value="{{wordsToParse}}" placeholder="粘贴或输入多项：推荐用【换行/逗号/分号/竖线】分隔；短语请用双引号括起，如 \"take off\"。仅空格分隔时系统会询问是否按空格切分。" placeholder-class="placeholder-style" maxlength="-1" auto-height="true"/>
     <button class="parse-button" bindtap="parseAndAddWords" hover-class="button-hover" loading="{{isParsing}}">一键智能解析</button>
   </view>
 
@@ -40,7 +55,7 @@
   </view>
 </view>
 
-<!-- 移除保存按钮，因为现在有自动保存功能 -->
+
 
 <view class="modal-mask" wx:if="{{isEditingWord}}" bindtap="closeEditModal">
   <view class="edit-modal" catchtap="preventModalClose">
@@ -55,8 +70,36 @@
         <input class="form-input" value="{{editingWordData.phonetics}}" placeholder="[可选] 请输入音标" bindinput="onEditInput" data-field="phonetics" />
       </view>
       <view class="form-item">
-        <label class="form-label">释义</label>
-        <textarea class="form-textarea" value="{{editingWordData.meaningsStr}}" placeholder="每行一个释义，例如：&#10;n. 苹果&#10;adj. 苹果的" bindinput="onEditInput" data-field="meaningsStr" />
+        <label class="form-label">释义 <text class="meaning-hint">（点击删除不需要的释义）</text></label>
+        
+        <!-- 释义标签列表 -->
+        <view class="meanings-tags-container">
+          <view wx:for="{{editingWordData.meanings}}" wx:key="index" 
+                class="meaning-tag {{item.selected ? 'selected' : 'unselected'}}"
+                bindtap="toggleMeaning" 
+                data-index="{{index}}">
+            <text class="meaning-text">{{item.pos}} {{item.def}}</text>
+            <view class="meaning-action">
+              <text wx:if="{{item.selected}}" class="keep-icon">✓</text>
+              <text wx:else class="remove-icon">✕</text>
+            </view>
+          </view>
+        </view>
+        
+        <!-- 手动编辑模式切换 -->
+        <view class="edit-mode-toggle">
+          <text class="toggle-text" bindtap="toggleEditMode">
+            {{editingWordData.manualEditMode ? '返回标签模式' : '手动编辑模式'}}
+          </text>
+        </view>
+        
+        <!-- 手动编辑文本框（仅在手动模式下显示） -->
+        <textarea wx:if="{{editingWordData.manualEditMode}}" 
+                  class="form-textarea" 
+                  value="{{editingWordData.meaningsStr}}" 
+                  placeholder="每行一个释义，例如：&#10;n. 苹果&#10;adj. 苹果的" 
+                  bindinput="onEditInput" 
+                  data-field="meaningsStr" />
       </view>
     </view>
     <view class="modal-actions">

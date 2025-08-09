@@ -1,75 +1,187 @@
 <view class="container">
-  <view wx:if="{{pageState === 'loading'}}" class="state-container">
-    <text>正在加载...</text>
-  </view>
-
-  <view wx:if="{{pageState === 'auth'}}" class="state-container auth-container">
-    <view class="header">
-      <view class="title">欢迎使用</view>
-      <view class="subtitle">三通英语助手</view>
-    </view>
-
-    <view class="auth-main">
-      <view class="auth-button" bindtap="handleAuth" hover-class="button-hover">
-        <text>微信授权登录</text>
+  <!-- 加载状态 -->
+  <view wx:if="{{pageState === 'loading'}}" class="loading-container">
+    <view class="loading-animation">
+      <view class="loading-dots">
+        <view class="dot"></view>
+        <view class="dot"></view>
+        <view class="dot"></view>
       </view>
-      <view class="guest-button" bindtap="enterAsGuest">先逛逛 (体验模式)</view>
     </view>
+    <text class="loading-text">正在为您准备学习环境...</text>
+  </view>
 
-    <view class="footer-area">
-      <text class="footer-notice">本小程序为内部教学工具，仅限授权师生登录使用。</text>
+  <!-- 授权登录页面 -->
+  <view wx:if="{{pageState === 'auth'}}" class="auth-container">
+    <view class="auth-background">
+      <view class="auth-gradient"></view>
+      <view class="auth-pattern"></view>
+    </view>
+    
+    <view class="auth-content">
+      <view class="auth-header">
+        <view class="app-logo">
+          <text class="logo-icon">📚</text>
+        </view>
+        <view class="auth-title">
+          <text class="main-title">三通英语助手</text>
+          <text class="sub-title">让学习更智能，让进步更可见</text>
+        </view>
+      </view>
+
+      <view class="auth-actions">
+        <button class="auth-button primary" bindtap="handleAuth" hover-class="button-hover">
+          <text class="button-icon">🔐</text>
+          <text class="button-text">微信授权登录</text>
+        </button>
+        
+        <button class="auth-button secondary" bindtap="enterAsGuest" hover-class="button-hover">
+          <text class="button-icon">👀</text>
+          <text class="button-text">体验模式</text>
+        </button>
+      </view>
+
+      <view class="auth-footer">
+        <text class="footer-text">内部教学工具 · 师生专用</text>
+      </view>
     </view>
   </view>
 
-  <view wx:if="{{pageState === 'profile'}}" class="state-container profile-setup-container">
-    <view class="header">
-      <view class="title">创建您的学籍档案</view>
-      <view class="subtitle">请设置您在小程序中展示的头像和昵称</view>
+  <!-- 个人资料设置页面 -->
+  <view wx:if="{{pageState === 'profile'}}" class="profile-container">
+    <view class="profile-background">
+      <view class="profile-gradient"></view>
     </view>
+    
+    <view class="profile-content">
+      <view class="profile-header">
+        <text class="profile-title">完善您的学习档案</text>
+      </view>
 
-    <view class="profile-form">
-      <button class="avatar-wrapper" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
-        <image class="avatar" src="{{avatarUrl || '/images/default-avatar.png'}}"></image>
+      <view class="profile-form">
+        <view class="avatar-section">
+          <button class="avatar-button" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
+            <image class="avatar-image" src="{{avatarUrl || '/images/avatar.png'}}" mode="aspectFill"></image>
+            <view class="avatar-overlay">
+              <text class="avatar-icon">📷</text>
+            </view>
+          </button>
+          <text class="avatar-hint">点击更换头像</text>
+        </view>
+
+        <view class="form-group">
+          <text class="form-label">昵称</text>
+          <input class="form-input" type="nickname" placeholder="请输入您的昵称" value="{{nickname}}" bindinput="onNicknameInput"/>
+        </view>
+
+        <view class="form-group">
+          <text class="form-label">个性签名</text>
+          <textarea class="form-textarea" placeholder="写点什么吧..." value="{{sign}}" bindinput="onSignInput" maxlength="50"/>
+          <text class="form-counter">{{sign ? sign.length : 0}}/50</text>
+        </view>
+      </view>
+
+      <button class="confirm-button" bindtap="onConfirmProfile">
+        <text class="confirm-text">完成设置</text>
       </button>
-      <view class="nickname-label">昵称</view>
-      <input class="nickname-input" type="nickname" placeholder="请输入昵称" value="{{nickname}}" bindinput="onNicknameInput"/>
-    </view>
-
-    <view class="confirm-btn" bindtap="onConfirmProfile">确认并继续</view>
-  </view>
-
-
-  <view wx:if="{{pageState === 'role'}}" class="state-container">
-    <view class="header">
-      <view class="title">欢迎，{{userInfo.nickName}}</view>
-      <view class="subtitle">请选择您的身份</view>
-    </view>
-    <view class="card-list">
-      <view class="role-card teacher-card" hover-class="card-hover" bindtap="onRoleSelect" data-role="teacher">
-        <view class="card-text">
-          <view class="card-title">我是老师</view>
-          <view class="card-description">创建课程，布置作业</view>
-        </view>
-      </view>
-      <view class="role-card student-card" hover-class="card-hover" bindtap="onRoleSelect" data-role="student">
-        <view class="card-text">
-          <view class="card-title">我是学生</view>
-          <view class="card-description">开始你的学习之旅</view>
-        </view>
-      </view>
     </view>
   </view>
 
+  <!-- 身份选择页面 -->
+  <view wx:if="{{pageState === 'role'}}" class="role-container">
+    <view class="role-background">
+      <view class="role-gradient"></view>
+      <view class="role-pattern"></view>
+    </view>
+    
+    <view class="role-content">
+      <!-- 统一的个人中心区域 -->
+      <view class="unified-profile-section">
+        <view class="profile-header">
+          <view class="profile-avatar" bindtap="editProfile">
+            <image class="avatar-image" src="{{userInfo.avatarUrl || '/images/avatar.png'}}" mode="aspectFill" />
+            <!-- 调试信息 -->
+            <text style="font-size: 20rpx; color: red; position: absolute; bottom: -30rpx; left: 0;">{{userInfo.avatarUrl || '使用默认头像'}}</text>
+            <view class="avatar-edit">
+              <text class="edit-icon">✏️</text>
+            </view>
+          </view>
+          <view class="profile-info" bindtap="editProfile">
+            <text class="profile-name">{{userInfo.nickName || '学习者'}}</text>
+            <text class="profile-signature" wx:if="{{userInfo.sign}}">{{userInfo.sign}}</text>
+            <text class="profile-signature placeholder" wx:else>暂无签名</text>
+          </view>
+        </view>
+
+        <!-- 学习统计 -->
+        <view class="stats-section">
+          <view class="stats-title">我的学习数据</view>
+          <view class="stats-grid">
+            <view class="stat-item">
+              <text class="stat-number">{{userStats.totalHomeworks || 0}}</text>
+              <text class="stat-label">完成作业</text>
+            </view>
+            <view class="stat-item">
+              <text class="stat-number">{{userStats.avgScore || 0}}</text>
+              <text class="stat-label">平均分</text>
+            </view>
+            <view class="stat-item">
+              <text class="stat-number">{{userStats.totalTime || '0分钟'}}</text>
+              <text class="stat-label">学习时长</text>
+            </view>
+            <view class="stat-item">
+              <text class="stat-number">{{userStats.bestRank || '暂无'}}</text>
+              <text class="stat-label">最佳排名</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 快捷操作 -->
+        <view class="quick-actions">
+          <button class="quick-btn leaderboard-btn" bindtap="goLeaderboard">
+            <text class="quick-icon">🏆</text>
+            <text class="quick-text">排行榜</text>
+          </button>
+          <button class="quick-btn teacher-btn" bindtap="onRoleSelect" data-role="teacher">
+            <text class="quick-icon">👨‍🏫</text>
+            <text class="quick-text">教师功能</text>
+          </button>
+        </view>
+      </view>
+
+            <!-- 学习入口区域 -->
+      <view class="learning-section">
+        <view class="learning-cards">
+          <view class="learning-card main-card" hover-class="card-hover" bindtap="onRoleSelect" data-role="student">
+            <view class="card-icon">
+              <text class="icon-text">📚</text>
+            </view>
+            <view class="card-content">
+              <text class="card-title">开始练习</text>
+            </view>
+            <view class="card-arrow">
+              <text class="arrow-icon">→</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 教师口令弹窗 -->
   <view class="modal-mask" wx:if="{{showPasswordModal}}" bindtap="onPasswordCancel">
     <view class="modal-container" catchtap="preventModalClose">
-      <view class="modal-title">请输入教师口令</view>
-      <view class="modal-input-wrapper">
-        <input class="modal-input" type="password" value="{{passwordInput}}" bindinput="onPasswordInput" maxlength="20" focus="{{true}}" placeholder="请输入口令"/>
+      <view class="modal-header">
+        <text class="modal-title">教师验证</text>
       </view>
+      
+      <view class="modal-input-wrapper">
+        <input class="modal-input" type="password" value="{{passwordInput}}" bindinput="onPasswordInput" maxlength="20" focus="{{true}}" placeholder="输入口令"/>
+      </view>
+      
       <view class="modal-actions">
-        <view class="modal-button cancel" bindtap="onPasswordCancel">取消</view>
-        <view class="modal-button-divider"></view>
-        <view class="modal-button confirm" bindtap="onPasswordConfirm">确认</view>
+        <button class="modal-button cancel" bindtap="onPasswordCancel">取消</button>
+        <button class="modal-button confirm" bindtap="onPasswordConfirm">确认</button>
       </view>
     </view>
   </view>

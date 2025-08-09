@@ -1,42 +1,109 @@
 <view class="page-container">
   <view class="header">
     <view class="title">群英榜</view>
-    <view class="subtitle">根据平均完成率排名</view>
+    <view class="subtitle">{{dimensionConfig[currentDimension].subtitle}}</view>
+    
+    <!-- 维度切换 -->
+    <view class="dimension-selector">
+      <scroll-view class="dimension-scroll" scroll-x="true">
+        <view class="dimension-item {{currentDimension === 'score' ? 'active' : ''}}" 
+              bindtap="onDimensionChange" data-dimension="score">
+          <view class="dimension-icon">🏆</view>
+          <view class="dimension-name">综合榜</view>
+        </view>
+        <view class="dimension-item {{currentDimension === 'efficiency' ? 'active' : ''}}" 
+              bindtap="onDimensionChange" data-dimension="efficiency">
+          <view class="dimension-icon">⚡</view>
+          <view class="dimension-name">效率榜</view>
+        </view>
+        <view class="dimension-item {{currentDimension === 'stability' ? 'active' : ''}}" 
+              bindtap="onDimensionChange" data-dimension="stability">
+          <view class="dimension-icon">🎯</view>
+          <view class="dimension-name">稳定榜</view>
+        </view>
+
+      </scroll-view>
+    </view>
+    
+    <!-- 时间范围切换 -->
+    <view class="time-range-selector">
+      <view class="range-btn {{timeRange === 'week' ? 'active' : ''}}" 
+            bindtap="onTimeRangeChange" data-range="week">
+        周榜
+      </view>
+      <view class="range-btn {{timeRange === 'all' ? 'active' : ''}}" 
+            bindtap="onTimeRangeChange" data-range="all">
+        总榜
+      </view>
+    </view>
   </view>
 
   <view class="podium" wx:if="{{leaderboardList.length >= 3}}">
-    <view class="podium-item silver">
+    <view class="podium-item silver" bindtap="onPlayerTap" data-player="{{leaderboardList[1]}}">
       <image class="avatar" src="{{leaderboardList[1].avatarUrl}}"></image>
       <view class="nickname">{{leaderboardList[1].nickName}}</view>
-      <view class="score">{{leaderboardList[1].avgScore}}分</view>
+      <view class="signature" wx:if="{{leaderboardList[1].sign}}">{{leaderboardList[1].sign}}</view>
+      <view class="podium-stats" wx:if="{{showDetailStats}}">
+        <text class="podium-stat-item">{{leaderboardList[1].homeworkCount}}次</text>
+        <text class="podium-stat-item">{{leaderboardList[1].avgTime}}分钟</text>
+        <text class="podium-stat-item">{{leaderboardList[1].consecutiveCorrect}}连对</text>
+      </view>
+      <view class="score" wx:else>{{dimensionConfig[currentDimension].getValue(leaderboardList[1])}}</view>
       <view class="rank-badge">2</view>
     </view>
-    <view class="podium-item gold">
+    <view class="podium-item gold" bindtap="onPlayerTap" data-player="{{leaderboardList[0]}}">
       <image class="avatar" src="{{leaderboardList[0].avatarUrl}}"></image>
       <view class="nickname">{{leaderboardList[0].nickName}}</view>
-      <view class="score">{{leaderboardList[0].avgScore}}分</view>
+      <view class="signature" wx:if="{{leaderboardList[0].sign}}">{{leaderboardList[0].sign}}</view>
+      <view class="podium-stats" wx:if="{{showDetailStats}}">
+        <text class="podium-stat-item">{{leaderboardList[0].homeworkCount}}次</text>
+        <text class="podium-stat-item">{{leaderboardList[0].avgTime}}分钟</text>
+        <text class="podium-stat-item">{{leaderboardList[0].consecutiveCorrect}}连对</text>
+      </view>
+      <view class="score" wx:else>{{dimensionConfig[currentDimension].getValue(leaderboardList[0])}}</view>
       <view class="rank-badge">1</view>
     </view>
-    <view class="podium-item bronze">
+    <view class="podium-item bronze" bindtap="onPlayerTap" data-player="{{leaderboardList[2]}}">
       <image class="avatar" src="{{leaderboardList[2].avatarUrl}}"></image>
       <view class="nickname">{{leaderboardList[2].nickName}}</view>
-      <view class="score">{{leaderboardList[2].avgScore}}分</view>
+      <view class="signature" wx:if="{{leaderboardList[2].sign}}">{{leaderboardList[2].sign}}</view>
+      <view class="podium-stats" wx:if="{{showDetailStats}}">
+        <text class="podium-stat-item">{{leaderboardList[2].homeworkCount}}次</text>
+        <text class="podium-stat-item">{{leaderboardList[2].avgTime}}分钟</text>
+        <text class="podium-stat-item">{{leaderboardList[2].consecutiveCorrect}}连对</text>
+      </view>
+      <view class="score" wx:else>{{dimensionConfig[currentDimension].getValue(leaderboardList[2])}}</view>
       <view class="rank-badge">3</view>
     </view>
   </view>
 
   <view class="rank-list">
     <block wx:for="{{leaderboardList}}" wx:for-item="player" wx:key="index">
-      <view class="rank-item" wx:if="{{index >= 3}}">
+      <view class="rank-item" wx:if="{{index >= 3}}" bindtap="onPlayerTap" data-player="{{player}}">
         <view class="rank-number">{{index + 1}}</view>
         <image class="rank-avatar" src="{{player.avatarUrl}}"></image>
         <view class="rank-info">
           <view class="rank-nickname">{{player.nickName}}</view>
-          <view class="rank-homework-count">已完成 {{player.homeworkCount}} 次作业</view>
+          <view class="rank-sign" wx:if="{{player.sign}}">{{player.sign}}</view>
+          <view class="rank-stats" wx:if="{{showDetailStats}}">
+            <text class="stat-item">已完成 {{player.homeworkCount}} 次</text>
+            <text class="stat-item">平均用时 {{player.avgTime}} 分钟</text>
+            <text class="stat-item">连续正确 {{player.consecutiveCorrect}} 次</text>
+            <text class="stat-item">错题修复率 {{player.mistakeFixRate}}%</text>
+          </view>
+          <view class="rank-primary-stat" wx:else>
+            {{dimensionConfig[currentDimension].description(player)}}
+          </view>
         </view>
-        <view class="rank-score">{{player.avgScore}}分</view>
+        <view class="rank-score">{{dimensionConfig[currentDimension].getValue(player)}}</view>
+        <view class="expand-icon" wx:if="{{!showDetailStats}}">›</view>
       </view>
     </block>
+  </view>
+
+  <!-- 详细统计切换按钮 -->
+  <view class="stats-toggle" bindtap="toggleDetailStats">
+    <text>{{showDetailStats ? '收起详情' : '展开详情'}}</text>
   </view>
 
   <view class="loading-state" wx:if="{{isLoading}}">加载中...</view>
