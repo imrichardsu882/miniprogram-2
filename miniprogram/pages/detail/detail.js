@@ -38,13 +38,26 @@ Page({
     // 庆祝效果
     showCelebration: false,
     canPrevReview: false,
-    canNextReview: false
+    canNextReview: false,
+
+    // 新增：错误反馈和自动跳转相关
+    showErrorFeedback: false,
+    correctAnswerText: '',
+    retryButtonDisabled: false,
+    continueButtonDisabled: true, // 初始禁用，0.8秒后启用
+    isAutoProgressing: false,
+    currentQuestionRetried: false, // 当前题目是否已重试过
+    autoProgressTimer: null
   },
 
   onLoad(options) {
     if (options.role) this.setData({ userRole: options.role });
     correctAudio.src = '/audios/correct-156911.mp3';
     errorAudio.src = '/audios/error-05-199276.mp3';
+
+    // 统一音频状态管理（空闲/播放中/已结束）
+    this._audioState = 'idle';
+    this._visualLock = false; // 交互锁
     // 采用已有提示音作轻点音效，降低音量
     tapAudio.src = '/audios/correct-156911.mp3';
     tapAudio.volume = 0.2;
@@ -96,8 +109,17 @@ Page({
       spellingDiff: null,
       feedback: { type: '', message: '', knowledge: null },
       progress: (currentWordIndex / this.data.totalWords) * 100,
-      spStageClass: ''
+      spStageClass: '',
+      // 重置新增的状态
+      showErrorFeedback: false,
+      correctAnswerText: '',
+      retryButtonDisabled: false,
+      continueButtonDisabled: true,
+      isAutoProgressing: false,
+      currentQuestionRetried: false
     }, () => {
+      // 进入新题，释放交互锁
+      this._visualLock = false;
       // 进题自动发音
       this.playWordAudio(this.data.currentQuestion.word);
       if (this.data.currentQuestion.type === 'sp' && this.data.useTileSpelling) {
@@ -161,47 +183,41 @@ Page({
     }
     if (!wordToPlay) return;
 
+    // 若已有发音在播，默认不打断（遵循不中断策略）
+    if (this._audioState === 'playing') {
+      console.log('音频播放中，忽略新的播放请求');
+      return;
+    }
+
     const urls = [
       `https://dict.youdao.com/dictvoice?type=0&audio=${encodeURIComponent(wordToPlay)}`,
       `https://dict.youdao.com/dictvoice?type=1&audio=${encodeURIComponent(wordToPlay)}`
-      // 如需百度 TTS，可放开下一行，但其接口偶发 500
-      //,`https://tts.baidu.com/text2audio?lan=en&ie=UTF-8&spd=5&text=${encodeURIComponent(wordToPlay)}`
     ];
 
     let idx = 0;
     const tryPlay = () => {
-      try { 
-        wordAudio.stop(); 
-      } catch (e) {
-        console.log('停止音频播放:', e.message);
-      }
-      
+      try { wordAudio.stop(); } catch(_) {}
+      this._audioState = 'playing';
+
+      wordAudio.offEnded && wordAudio.offEnded();
+      wordAudio.offError && wordAudio.offError();
+      wordAudio.offCanplay && wordAudio.offCanplay();
+
       wordAudio.src = urls[idx];
-      
-      // 设置错误回调，失败则尝试下一个源
+
+      wordAudio.onEnded(() => {
+        this._audioState = 'ended';
+      });
       wordAudio.onError((error) => {
-        console.warn(`音频加载失败 (${idx + 1}/${urls.length}):`, urls[idx], error);
-        if (idx < urls.length - 1) { 
-          idx += 1; 
-          tryPlay(); 
-        } else {
-          console.error('所有音频源都加载失败，跳过发音');
-        }
+        console.warn('音频错误', error);
+        if (idx < urls.length - 1) { idx += 1; tryPlay(); return; }
+        this._audioState = 'ended';
       });
-      
-      // 设置成功回调
-      wordAudio.onCanplay(() => {
-        console.log('音频加载成功:', urls[idx]);
-      });
-      
-      try {
-        wordAudio.play();
-      } catch (playError) {
-        console.warn('音频播放失败:', playError);
-        if (idx < urls.length - 1) { 
-          idx += 1; 
-          tryPlay(); 
-        }
+      wordAudio.onCanplay(() => { /* 可播放 */ });
+
+      try { wordAudio.play(); } catch (e) { 
+        if (idx < urls.length - 1) { idx += 1; tryPlay(); return; }
+        this._audioState = 'ended';
       }
     };
     tryPlay();
@@ -262,7 +278,13 @@ Page({
     let feedback = { type: '', message: '' };
 
     const summaryList = this.data.summaryList;
-    summaryList.push({ word: wordInfo.word, def: this.aggregateMeanings(wordInfo.meanings), isCorrect });
+    // 添加isRetried字段到答题记录
+    summaryList.push({ 
+      word: wordInfo.word, 
+      def: this.aggregateMeanings(wordInfo.meanings), 
+      isCorrect,
+      isRetried: this.data.currentQuestionRetried // 记录是否重试过
+    });
     this.setData({ summaryList });
 
     if (isCorrect) {
@@ -323,35 +345,41 @@ Page({
   },
 
   onMcOptionTap(e) {
-    if (this.data.isAnswered) return;
+    if (this._visualLock || this.data.isAnswered) return; // 交互互斥
+    this._visualLock = true;
     wx.vibrateShort({ type: 'light' });
+    
     const userAnswer = e.currentTarget.dataset.optionDef;
     const correctAnswer = this.data.currentQuestion.answer;
     const isCorrect = userAnswer === correctAnswer;
+    
     const newOptions = this.data.currentQuestion.options.map(opt => {
       if (opt.def === correctAnswer) opt.status = 'correct';
       else if (opt.def === userAnswer) opt.status = 'incorrect';
       return opt;
     });
+    
     this.setData({ isAnswered: true, 'currentQuestion.options': newOptions });
     this.handleAnswer(isCorrect);
-    // 答题完成后自动播放目标单词发音（统一替代对/错提示音）
+    
+    // 播放单词发音
     this.playWordAudio(this.data.currentQuestion.word);
 
-    // 增强的反馈效果
-    if (isCorrect) {
-      wx.vibrateShort({ type: 'medium' });
-      // 取消对/错提示音，由上面的单词发音替代
-      
-      // 庆祝效果：延迟显示继续按钮
-      setTimeout(() => {
-        this.triggerCelebrationEffects();
-      }, 400);
-      
-    } else {
-      wx.vibrateShort({ type: 'heavy' });
-      // 取消错误提示音
-    }
+    const afterFlow = async () => {
+      if (isCorrect) {
+        // 答对：等视觉反馈与音频完成后再跳
+        wx.vibrateShort({ type: 'medium' });
+        await this.waitVisualAndAudio(800, 1600);
+        this.handleCorrectAnswer();
+        this._visualLock = false; // 切题流程内部会重新生成题并释放锁
+      } else {
+        // 答错：显示覆盖层，并释放锁（由覆盖层按钮再加锁）
+        wx.vibrateShort({ type: 'heavy' });
+        this.handleIncorrectAnswer(correctAnswer);
+        this._visualLock = false;
+      }
+    };
+    afterFlow();
   },
 
   onSpellingSubmit() {
@@ -396,6 +424,82 @@ Page({
 
       // 答错后无需重新生成例句，例句在进入题目时已显示
     }
+  },
+
+  // 处理正确答案：自动跳转下一题（等待逻辑在外部完成）
+  handleCorrectAnswer() {
+    console.log('答对了，准备自动跳转下一题');
+    this.setData({ isAutoProgressing: true });
+    // 短暂停顿以显示提示，然后立刻进入下一题
+    this.data.autoProgressTimer = setTimeout(() => {
+      this.setData({ isAutoProgressing: false });
+      this.nextWord();
+    }, 300);
+  },
+
+  // 处理错误答案：显示错误反馈层
+  handleIncorrectAnswer(correctAnswer) {
+    console.log('答错了，显示错误反馈层');
+    
+    this.setData({
+      showErrorFeedback: true,
+      correctAnswerText: correctAnswer,
+      retryButtonDisabled: false,
+      continueButtonDisabled: true // 初始禁用继续按钮
+    });
+
+    // 0.8秒后启用继续按钮，引导用户先看反馈
+    setTimeout(() => {
+      this.setData({ continueButtonDisabled: false });
+    }, 800);
+  },
+
+  // 再试一次
+  retryQuestion() {
+    if (this._visualLock) return;
+    this._visualLock = true;
+    console.log('用户选择再试一次');
+    
+    if (this.data.currentQuestionRetried) {
+      wx.showToast({ title: '每题只能重试一次', icon: 'none' });
+      return;
+    }
+
+    // 重置选项状态
+    const resetOptions = this.data.currentQuestion.options.map(opt => ({
+      ...opt,
+      status: ''
+    }));
+
+    this.setData({
+      showErrorFeedback: false,
+      isAnswered: false,
+      'currentQuestion.options': resetOptions,
+      currentQuestionRetried: true
+    });
+
+    // 将错选项置灰
+    setTimeout(() => {
+      const grayedOptions = this.data.currentQuestion.options.map(opt => {
+        if (opt.def !== this.data.correctAnswerText && opt.status === '') {
+          return { ...opt, status: 'disabled' };
+        }
+        return opt;
+      });
+      this.setData({ 'currentQuestion.options': grayedOptions });
+      this._visualLock = false; // 释放锁
+    }, 100);
+  },
+
+  // 跳过到下一题
+  async goToNextQuestion() {
+    if (this._visualLock) return;
+    this._visualLock = true;
+    console.log('用户选择继续下一题');
+    this.setData({ showErrorFeedback: false });
+    await this.waitVisualAndAudio(800, 1600);
+    this.nextWord();
+    this._visualLock = false;
   },
 
   // 保存答题快照（用于回看已做过的题目）
@@ -717,7 +821,28 @@ Page({
     console.log('✓ 答对了！触发简化庆祝效果');
   },
 
+  // 等待视觉动画与音频播放的工具函数
+  waitVisualAndAudio(minWaitMs = 800, maxWaitMs = 1600) {
+    return new Promise(resolve => {
+      const start = Date.now();
+      const check = () => {
+        const elapsed = Date.now() - start;
+        const audioDone = this._audioState === 'ended' || this._audioState === 'idle';
+        if (elapsed >= maxWaitMs) { resolve(); return; }
+        if (elapsed >= minWaitMs && audioDone) { resolve(); return; }
+        setTimeout(check, 50);
+      };
+      check();
+    });
+  },
+
   nextWord() {
+    // 清除自动跳转定时器
+    if (this.data.autoProgressTimer) {
+      clearTimeout(this.data.autoProgressTimer);
+      this.data.autoProgressTimer = null;
+    }
+
     if (this.data.currentWordIndex < this.data.totalWords - 1) {
       this.setData({ currentWordIndex: this.data.currentWordIndex + 1 }, () => this.generateQuestion());
     } else {
@@ -869,6 +994,18 @@ Page({
   },
 
   onSpellingInput(e) { this.setData({ userSpellingInput: e.detail.value }); },
+
+  // 页面卸载时清理定时器
+  onUnload() {
+    if (this.data.autoProgressTimer) {
+      clearTimeout(this.data.autoProgressTimer);
+      this.data.autoProgressTimer = null;
+    }
+    // 确保离开页面时释放交互锁与音频状态
+    this._visualLock = false;
+    try { wordAudio.stop(); } catch (_) {}
+    this._audioState = 'idle';
+  },
 
   // 计算分位数（本地聚合查询替代云函数）
   async calculateScorePercentile(homeworkId, score) {

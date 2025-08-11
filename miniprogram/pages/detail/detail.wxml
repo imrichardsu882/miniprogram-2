@@ -35,24 +35,43 @@
 
   <view class="interaction-zone">
     <block wx:if="{{currentQuestion.type === 'mc'}}">
-      <view class="mc-options-grid" style="min-height: 0;">
-        <view wx:for="{{currentQuestion.options}}" wx:key="index"
-              class="mc-option-card {{item.status}}"
-              bindtap="onMcOptionTap"
-              data-option-def="{{item.def}}"
-              hover-class="{{isAnswered ? '' : 'card-hover'}}"
-              hover-stay-time="50">
-          <text class="option-def">{{item.def}}</text>
-          <view class="feedback-icon {{item.status}}">
-            <text wx:if="{{item.status === 'correct'}}">✔</text>
-            <text wx:if="{{item.status === 'incorrect'}}">✕</text>
+      <!-- 固定高度的选项容器，防止位置位移；所有覆盖层放在该容器内部，绝对定位覆盖，不参与文档流 -->
+      <view class="mc-options-container">
+        <view class="mc-options-grid">
+          <view wx:for="{{currentQuestion.options}}" wx:key="index"
+                class="mc-option-card {{item.status}}"
+                bindtap="onMcOptionTap"
+                data-option-def="{{item.def}}"
+                hover-class="{{isAnswered ? '' : 'card-hover'}}"
+                hover-stay-time="50">
+            <text class="option-def">{{item.def}}</text>
+            <view class="feedback-icon {{item.status}}">
+              <text wx:if="{{item.status === 'correct'}}">✔</text>
+              <text wx:if="{{item.status === 'incorrect'}}">✕</text>
+            </view>
           </view>
         </view>
-      </view>
+        
+        <!-- 错误反馈层（覆盖，不改变布局） -->
+        <view class="error-feedback-layer" wx:if="{{showErrorFeedback}}">
+          <view class="error-feedback-content">
+            <view class="error-feedback-header">
+              <view class="error-icon">✕</view>
+              <view class="error-title">答错了，再想想？</view>
+            </view>
+            <view class="error-feedback-text">正确答案是：{{correctAnswerText}}</view>
+            <view class="error-feedback-actions">
+              <button class="retry-btn" bindtap="retryQuestion" disabled="{{retryButtonDisabled}}">再试一次</button>
+              <button class="continue-btn-error" bindtap="goToNextQuestion" disabled="{{continueButtonDisabled}}">继续</button>
+            </view>
+          </view>
+        </view>
 
-      <!-- MC 模式下的继续按钮：始终占位，答题后可见，避免布局跳动 -->
-      <!-- 仅在答题后显示继续按钮，避免“灰色占位”无意义出现 -->
-      <button wx:if="{{isAnswered}}" class="sp-submit-btn continue" bindtap="nextWord">继续</button>
+        <!-- 自动跳转提示（覆盖，不改变布局） -->
+        <view class="next-placeholder" wx:if="{{isAutoProgressing}}">
+          <view class="auto-progress-text">答对了！ 即将进入下一题…</view>
+        </view>
+      </view>
     </block>
 
     <!-- 拼写题：字母卡片模式（选中字母+操作区紧贴手指） -->

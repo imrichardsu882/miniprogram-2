@@ -196,17 +196,13 @@ page {
 
 /* 移动端优化的交互区域 */
 .interaction-zone {
-  position: fixed;
-  bottom: 120rpx; /* 仅为继续按钮预留空间 */
-  left: 0;
-  right: 0;
-  padding: var(--spacing-xl) var(--spacing-xl) calc(var(--spacing-xl) + 20rpx);
+  /* 改为普通文档流，紧跟题面展示，避免整体下移 */
+  position: static;
+  padding: var(--spacing-xl);
   background: white;
-  border-top-left-radius: var(--radius-xl);
-  border-top-right-radius: var(--radius-xl);
-  /* 去除底部阴影线 */
+  border-radius: var(--radius-xl);
   box-shadow: none;
-  z-index: 100;
+  z-index: 1;
 }
 
 
@@ -231,12 +227,18 @@ page {
 .review-nav.right { right: -16rpx; }
 .review-nav.disabled { opacity: 0.15; pointer-events: none; }
 
+/* 固定高度的选项容器，防止位置上移 */
+.mc-options-container {
+  min-height: 560rpx; /* 固定最小高度，防止因状态切换产生位移 */
+  position: relative; /* 供覆盖层绝对定位 */
+  overflow: visible;
+}
+
 .mc-options-grid {
   display: grid;
   grid-template-columns: 1fr; /* 单列布局，避免重叠 */
   gap: var(--spacing-lg);
-  margin-bottom: var(--spacing-xl);
-  min-height: 520rpx; /* 固定高度占位，避免判分后整体上移 */
+  /* 使用普通流，保持在容器顶部，不依赖绝对定位以减少设备差异 */
 }
 
 .mc-option-card {
@@ -291,6 +293,16 @@ page {
   animation: incorrectSoft 0.3s ease-out;
   position: relative;
   z-index: 1;
+}
+
+.mc-option-card.disabled {
+  background: var(--gray-200);
+  color: var(--gray-400);
+  pointer-events: none;
+  opacity: 0.5;
+  transform: none;
+  box-shadow: none;
+  border: 2rpx solid var(--gray-300);
 }
 
 @keyframes correctGlow {
@@ -1209,6 +1221,147 @@ page {
   100% { 
     transform: scale(1);
     box-shadow: 0 4rpx 12rpx rgba(239, 68, 68, 0.3);
+  }
+}
+
+/* 错误反馈层样式 */
+.error-feedback-layer {
+  position: absolute; /* 覆盖在选项容器内，不占位 */
+  left: 12rpx;
+  right: 12rpx;
+  bottom: 12rpx;
+  background: rgba(255, 255, 255, 0.98);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  box-shadow: 0 -8rpx 24rpx rgba(0, 0, 0, 0.1);
+  animation: slideUpFromBottom 0.3s ease-out;
+  z-index: 200;
+  backdrop-filter: blur(8rpx);
+}
+
+.error-feedback-content {
+  padding: var(--spacing-2xl);
+  text-align: center;
+}
+
+.error-feedback-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.error-feedback-layer .error-icon {
+  width: 48rpx;
+  height: 48rpx;
+  background: linear-gradient(135deg, var(--error-color), var(--error-light));
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  font-weight: bold;
+  box-shadow: 0 4rpx 12rpx rgba(239, 68, 68, 0.3);
+}
+
+.error-title {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+.error-feedback-text {
+  font-size: var(--font-size-lg);
+  color: var(--gray-600);
+  margin-bottom: var(--spacing-2xl);
+  line-height: 1.6;
+}
+
+.error-feedback-actions {
+  display: flex;
+  gap: var(--spacing-lg);
+}
+
+.retry-btn {
+  flex: 1;
+  height: 88rpx;
+  background: linear-gradient(135deg, var(--success-color), var(--success-light));
+  color: white;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  border-radius: var(--radius-lg);
+  border: none;
+  box-shadow: 0 6rpx 16rpx rgba(16, 185, 129, 0.3);
+  transition: all var(--transition-fast);
+}
+
+.retry-btn:disabled {
+  background: var(--gray-300);
+  color: var(--gray-500);
+  box-shadow: none;
+  opacity: 0.5;
+}
+
+.continue-btn-error {
+  flex: 1;
+  height: 88rpx;
+  background: linear-gradient(135deg, var(--gray-400), var(--gray-500));
+  color: white;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  border-radius: var(--radius-lg);
+  border: none;
+  box-shadow: 0 6rpx 16rpx rgba(107, 114, 128, 0.3);
+  transition: all var(--transition-fast);
+}
+
+.continue-btn-error:disabled {
+  background: var(--gray-200);
+  color: var(--gray-400);
+  box-shadow: none;
+  opacity: 0.5;
+}
+
+/* 自动跳转下一题的占位样式 */
+.next-placeholder {
+  position: absolute; /* 覆盖在选项容器内，不占位 */
+  left: 12rpx;
+  right: 12rpx;
+  bottom: 12rpx;
+  background: rgba(16, 185, 129, 0.95);
+  color: white;
+  padding: var(--spacing-2xl);
+  text-align: center;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  animation: slideUpFromBottom 0.3s ease-out;
+  z-index: 200;
+}
+
+.auto-progress-text {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+/* 动画定义 */
+@keyframes slideUpFromBottom {
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
   }
 }
 .sp-chosen {
