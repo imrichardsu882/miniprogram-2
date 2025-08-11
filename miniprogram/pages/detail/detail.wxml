@@ -1,4 +1,4 @@
-<view class="page-container" wx:if="{{!isFinished}}">
+<view class="page-container" wx:if="{{!isFinished}}" bindtouchstart="onTouchStart" bindtouchend="onTouchEnd">
   <view class="header">
     <view class="progress-container">
       <view class="progress-bar">
@@ -8,7 +8,7 @@
     </view>
   </view>
 
-  <view class="question-zone">
+  <view class="question-zone mc-style">
     <block wx:if="{{currentQuestion.type === 'mc'}}">
       <view class="mc-question-word">{{currentQuestion.word}}</view>
       <view class="phonetics-area" bindtap="playWordAudio" data-word="{{currentQuestion.word}}">
@@ -18,22 +18,24 @@
     </block>
 
     <block wx:if="{{currentQuestion.type === 'sp'}}">
-      <view class="sp-question-word">{{currentQuestion.question}}</view>
+      <view class="mc-question-word">{{currentQuestion.question}}</view>
       <!-- 发音重播按钮（拼写题） -->
       <view class="phonetics-area replay" bindtap="playWordAudio" data-word="{{currentQuestion.word}}">
         <image class="pronounce-icon" src="/images/pronounce.png"></image>
       </view>
 
-      <!-- 中部舞台：逐渐组成单词的动画展示（唯一展示区域）-->
-      <view class="sp-stage {{spStageClass}}">
-        <text wx:for="{{chosenLetters}}" wx:key="index" class="stage-letter">{{item.char}}</text>
-      </view>
+      <!-- 取消顶部舞台展示，改为贴近手指区展示（见下方 interaction-zone 内） -->
     </block>
+    <!-- 回看导航：题目卡片两侧，几乎透明 -->
+    <view class="review-nav left {{canPrevReview ? '' : 'disabled'}}" bindtap="onPrevTap">‹</view>
+    <view class="review-nav right {{canNextReview ? '' : 'disabled'}}" bindtap="onNextTap">›</view>
   </view>
+
+
 
   <view class="interaction-zone">
     <block wx:if="{{currentQuestion.type === 'mc'}}">
-      <view class="mc-options-grid">
+      <view class="mc-options-grid" style="min-height: 0;">
         <view wx:for="{{currentQuestion.options}}" wx:key="index"
               class="mc-option-card {{item.status}}"
               bindtap="onMcOptionTap"
@@ -47,12 +49,43 @@
           </view>
         </view>
       </view>
+
+      <!-- MC 模式下的继续按钮：始终占位，答题后可见，避免布局跳动 -->
+      <!-- 仅在答题后显示继续按钮，避免“灰色占位”无意义出现 -->
+      <button wx:if="{{isAnswered}}" class="sp-submit-btn continue" bindtap="nextWord">继续</button>
     </block>
 
-    <!-- 拼写题：字母卡片模式 -->
+    <!-- 拼写题：字母卡片模式（选中字母+操作区紧贴手指） -->
     <block wx:if="{{currentQuestion.type === 'sp'}}">
       <view class="sp-chosen {{chosenShake ? 'shake' : ''}}">
-        <view class="sp-chosen-actions">
+        <!-- 错误提示卡片：放在删除/清空上方，且不遮挡按钮 -->
+        <view class="sp-error-card" wx:if="{{isAnswered && spellingDiff}}">
+          <view class="error-header">
+            <view class="error-icon">✕</view>
+            <view class="error-title">拼写错误</view>
+          </view>
+          <view class="spelling-comparison">
+            <view class="comparison-row">
+              <view class="comparison-label">你的答案：</view>
+              <view class="comparison-word">
+                <text wx:for="{{spellingDiff.userInput}}" wx:key="index" class="spelling-char {{item.status}}">{{item.char}}</text>
+              </view>
+            </view>
+            <view class="comparison-row">
+              <view class="comparison-label">正确答案：</view>
+              <view class="comparison-word correct-answer">
+                <text wx:for="{{spellingDiff.correctAnswer}}" wx:key="index" class="spelling-char correct">{{item.char}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <!-- 选中字母：紧贴手指区域（仅在未判分或判对时显示） -->
+        <view class="sp-chosen-letters {{spStageClass}}" wx:if="{{!isAnswered || (isAnswered && !spellingDiff)}}">
+          <text wx:for="{{chosenLetters}}" wx:key="index" class="sp-chosen-letter">{{item.char}}</text>
+        </view>
+
+        <view class="sp-chosen-actions" wx:if="{{!isAnswered}}">
           <button class="sp-action-btn" bindtap="onDeleteLast" disabled="{{isAnswered || chosenLetters.length===0}}">删除</button>
           <button class="sp-action-btn" bindtap="onClearLetters" disabled="{{isAnswered || chosenLetters.length===0}}">清空</button>
         </view>
@@ -67,27 +100,22 @@
         </view>
       </view>
 
+      <!-- 主要按钮与字母区共位：未提交显示“确认”，提交后替换为“继续” -->
+      <button wx:if="{{!isAnswered}}"
+              class="sp-submit-btn {{chosenLetters.length>0 ? 'active' : ''}}"
+              bindtap="onTileSpellingSubmit"
+              disabled="{{chosenLetters.length===0}}">确认</button>
+      <button wx:elif="{{isAnswered}}"
+              class="sp-submit-btn continue"
+              bindtap="nextWord">继续</button>
     </block>
-  </view>
 
-  <!-- 统一的主要操作按钮区域 -->
-  <view class="primary-action-zone">
-    <button class="primary-action-btn {{chosenLetters.length>0 ? 'active' : ''}}"
-            bindtap="onTileSpellingSubmit"
-            disabled="{{isAnswered || chosenLetters.length===0}}"
-            wx:if="{{currentQuestion.type === 'sp' && !isAnswered}}">
-      确认
-    </button>
+    <!-- 移除交互区内的回看箭头（仅保留题目区两侧的箭头） -->
   </view>
 
   <!-- 移除底部反馈提示，避免遮挡选项 -->
 
-  <!-- ★★★ 统一的继续按钮区域 - 始终在固定位置 ★★★ -->
-  <view class="primary-action-zone" wx:if="{{isAnswered}}">
-    <button class="primary-action-btn continue" bindtap="nextWord">
-      继续 →
-    </button>
-  </view>
+  <!-- 移除固定底部继续按钮（已与确认共位） -->
 
   <!-- 简化的成功提示 -->
   <view class="success-toast" wx:if="{{showCelebration}}">
@@ -95,33 +123,6 @@
     <view class="success-text">答对了</view>
   </view>
 
-  <!-- 拼写错误反馈 -->
-  <view class="spelling-error-feedback" wx:if="{{isAnswered && spellingDiff && currentQuestion.type === 'sp'}}">
-    <view class="error-header">
-      <view class="error-icon">✕</view>
-      <view class="error-title">拼写错误</view>
-    </view>
-    
-    <view class="spelling-comparison">
-      <view class="comparison-row">
-        <view class="comparison-label">你的答案：</view>
-        <view class="comparison-word">
-          <text wx:for="{{spellingDiff.userInput}}" wx:key="index" 
-                class="spelling-char {{item.status}}">{{item.char}}</text>
-        </view>
-      </view>
-      
-      <view class="comparison-row">
-        <view class="comparison-label">正确答案：</view>
-        <view class="comparison-word correct-answer">
-          <text wx:for="{{spellingDiff.correctAnswer}}" wx:key="index" 
-                class="spelling-char correct">{{item.char}}</text>
-        </view>
-      </view>
-    </view>
-    
-
-  </view>
 </view>
 
 <!-- 完成结果页 -->

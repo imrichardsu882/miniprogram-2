@@ -1,3 +1,5 @@
 {
+  "navigationStyle": "default",
+  "navigationBarTitleText": "编辑作业",
   "usingComponents": {}
 }

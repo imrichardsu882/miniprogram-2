@@ -47,45 +47,7 @@
     </view>
   </view>
 
-  <!-- 个人资料设置页面 -->
-  <view wx:if="{{pageState === 'profile'}}" class="profile-container">
-    <view class="profile-background">
-      <view class="profile-gradient"></view>
-    </view>
-    
-    <view class="profile-content">
-      <view class="profile-header">
-        <text class="profile-title">完善您的学习档案</text>
-      </view>
-
-      <view class="profile-form">
-        <view class="avatar-section">
-          <button class="avatar-button" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
-            <image class="avatar-image" src="{{avatarUrl || '/images/avatar.png'}}" mode="aspectFill"></image>
-            <view class="avatar-overlay">
-              <text class="avatar-icon">📷</text>
-            </view>
-          </button>
-          <text class="avatar-hint">点击更换头像</text>
-        </view>
-
-        <view class="form-group">
-          <text class="form-label">昵称</text>
-          <input class="form-input" type="nickname" placeholder="请输入您的昵称" value="{{nickname}}" bindinput="onNicknameInput"/>
-        </view>
-
-        <view class="form-group">
-          <text class="form-label">个性签名</text>
-          <textarea class="form-textarea" placeholder="写点什么吧..." value="{{sign}}" bindinput="onSignInput" maxlength="50"/>
-          <text class="form-counter">{{sign ? sign.length : 0}}/50</text>
-        </view>
-      </view>
-
-      <button class="confirm-button" bindtap="onConfirmProfile">
-        <text class="confirm-text">完成设置</text>
-      </button>
-    </view>
-  </view>
+  <!-- 移除个人资料编辑界面，简化为微信授权直接进入 -->
 
   <!-- 身份选择页面 -->
   <view wx:if="{{pageState === 'role'}}" class="role-container">
@@ -100,57 +62,19 @@
         <view class="profile-header">
           <view class="profile-avatar" bindtap="editProfile">
             <image class="avatar-image" src="{{userInfo.avatarUrl || '/images/avatar.png'}}" mode="aspectFill" />
-            <!-- 调试信息 -->
-            <text style="font-size: 20rpx; color: red; position: absolute; bottom: -30rpx; left: 0;">{{userInfo.avatarUrl || '使用默认头像'}}</text>
             <view class="avatar-edit">
               <text class="edit-icon">✏️</text>
             </view>
           </view>
           <view class="profile-info" bindtap="editProfile">
             <text class="profile-name">{{userInfo.nickName || '学习者'}}</text>
-            <text class="profile-signature" wx:if="{{userInfo.sign}}">{{userInfo.sign}}</text>
-            <text class="profile-signature placeholder" wx:else>暂无签名</text>
           </view>
         </view>
 
-        <!-- 学习统计 -->
-        <view class="stats-section">
-          <view class="stats-title">我的学习数据</view>
-          <view class="stats-grid">
-            <view class="stat-item">
-              <text class="stat-number">{{userStats.totalHomeworks || 0}}</text>
-              <text class="stat-label">完成作业</text>
-            </view>
-            <view class="stat-item">
-              <text class="stat-number">{{userStats.avgScore || 0}}</text>
-              <text class="stat-label">平均分</text>
-            </view>
-            <view class="stat-item">
-              <text class="stat-number">{{userStats.totalTime || '0分钟'}}</text>
-              <text class="stat-label">学习时长</text>
-            </view>
-            <view class="stat-item">
-              <text class="stat-number">{{userStats.bestRank || '暂无'}}</text>
-              <text class="stat-label">最佳排名</text>
-            </view>
-          </view>
-        </view>
+        <!-- 学习统计模块移除（按你的意见不再显示） -->
 
-        <!-- 快捷操作 -->
-        <view class="quick-actions">
-          <button class="quick-btn leaderboard-btn" bindtap="goLeaderboard">
-            <text class="quick-icon">🏆</text>
-            <text class="quick-text">排行榜</text>
-          </button>
-          <button class="quick-btn teacher-btn" bindtap="onRoleSelect" data-role="teacher">
-            <text class="quick-icon">👨‍🏫</text>
-            <text class="quick-text">教师功能</text>
-          </button>
-        </view>
-      </view>
-
-            <!-- 学习入口区域 -->
-      <view class="learning-section">
+        <!-- 学习入口区域（优先显示，放在更靠前的位置） -->
+        <view class="learning-section">
         <view class="learning-cards">
           <view class="learning-card main-card" hover-class="card-hover" bindtap="onRoleSelect" data-role="student">
             <view class="card-icon">
@@ -165,6 +89,19 @@
           </view>
         </view>
       </view>
+
+        <!-- 快捷操作 -->
+        <view class="quick-actions">
+          <button class="quick-btn leaderboard-btn" bindtap="goLeaderboard">
+            <text class="quick-icon">🏆</text>
+            <text class="quick-text">排行榜</text>
+          </button>
+          <button class="quick-btn teacher-btn" bindtap="onRoleSelect" data-role="teacher">
+            <text class="quick-icon">👨‍🏫</text>
+            <text class="quick-text">教师功能</text>
+          </button>
+        </view>
+      </view>
     </view>
   </view>
 
@@ -176,7 +113,7 @@
       </view>
       
       <view class="modal-input-wrapper">
-        <input class="modal-input" type="password" value="{{passwordInput}}" bindinput="onPasswordInput" maxlength="20" focus="{{true}}" placeholder="输入口令"/>
+          <input class="modal-input" type="password" value="{{passwordInput}}" bindinput="onPasswordInput" maxlength="20" focus="{{true}}" placeholder="输入口令"/>
       </view>
       
       <view class="modal-actions">

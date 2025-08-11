@@ -8,9 +8,10 @@ page {
 }
 
 .container {
-  height: 100%;
+  min-height: 100%;
   position: relative;
   overflow: hidden;
+  padding-top: 88rpx; /* 顶部自定义安全区，避免标题遮挡 */
 }
 
 /* ===== 加载状态样式 ===== */
@@ -206,7 +207,7 @@ page {
 }
 
 .profile-content {
-  height: 100%;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   padding: 80rpx 60rpx;
@@ -232,7 +233,6 @@ page {
 }
 
 .profile-form {
-  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 40rpx;
@@ -247,14 +247,14 @@ page {
 
 .avatar-button {
   position: relative;
-  width: 200rpx;
+  width: 200rpx;   /* 适中 */
   height: 200rpx;
-  border-radius: 50%;
+  border-radius: 50%; /* 改为圆形外观 */
   border: 6rpx solid #e5e5ea;
-  background: transparent;
+  background: #fff;
   padding: 0;
   overflow: hidden;
-  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
 }
 
@@ -266,7 +266,7 @@ page {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  object-fit: cover;
+  object-fit: cover; /* 圆形下最好看，避免黑边 */
 }
 
 .avatar-overlay {
@@ -332,8 +332,10 @@ page {
 .form-textarea {
   height: 120rpx;
   resize: none;
-  line-height: 32rpx; /* 确保文字垂直居中 */
-  padding-top: 20rpx; /* 调整上边距 */
+  display: flex;
+  align-items: center; /* 垂直居中 */
+  line-height: 40rpx; /* 与字体配合居中 */
+  padding-top: 0;
 }
 
 .form-input:focus, .form-textarea:focus {
@@ -368,7 +370,8 @@ page {
   border: none;
   box-shadow: 0 4rpx 16rpx rgba(0, 122, 255, 0.3);
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  margin-top: 40rpx;
+  margin-top: 40rpx; /* 靠近输入区 */
+  margin-bottom: 120rpx; /* 保持尾部留白，避免按钮“越来越低”的错觉 */
 }
 
 .confirm-button:active {
@@ -407,7 +410,7 @@ page {
 }
 
 .role-content {
-  height: 100%;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   padding: 60rpx 40rpx;
@@ -824,7 +827,7 @@ page {
 .unified-profile-section {
   background: #ffffff;
   border-radius: 24rpx;
-  margin: 0 32rpx 32rpx;
+  margin: 180rpx 32rpx 24rpx; /* 再次下移15%达到真正垂直居中 */
   box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.08);
   overflow: hidden;
 }
@@ -949,9 +952,7 @@ page {
 }
 
 /* 学习入口样式 */
-.learning-section {
-  margin: 0 32rpx;
-}
+.learning-section { margin: 72rpx 32rpx 16rpx; /* 对应主体下移进一步调整 */ }
 
 .learning-cards {
   margin-top: 24rpx;

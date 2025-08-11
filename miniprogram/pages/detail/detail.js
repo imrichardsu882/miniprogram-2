@@ -36,7 +36,9 @@ Page({
     spStageClass: '',     // 舞台状态（正确/错误上色）
     
     // 庆祝效果
-    showCelebration: false
+    showCelebration: false,
+    canPrevReview: false,
+    canNextReview: false
   },
 
   onLoad(options) {
@@ -96,12 +98,14 @@ Page({
       progress: (currentWordIndex / this.data.totalWords) * 100,
       spStageClass: ''
     }, () => {
+      // 进题自动发音
       this.playWordAudio(this.data.currentQuestion.word);
       if (this.data.currentQuestion.type === 'sp' && this.data.useTileSpelling) {
         this.setupSpellingTiles(this.data.currentQuestion.answer);
       } else {
         this.setData({ letterBank: [], chosenLetters: [] });
       }
+      this.updateReviewAvailability();
     });
   },
 
@@ -133,7 +137,20 @@ Page({
   },
 
   generateSpQuestion(wordInfo) {
-    return { type: 'sp', word: wordInfo.word, phonetics: wordInfo.phonetics, question: this.aggregateMeanings(wordInfo.meanings), answer: wordInfo.word };
+    const cleanWord = this.sanitizeWord(wordInfo.word);
+    return { 
+      type: 'sp', 
+      word: cleanWord, 
+      phonetics: wordInfo.phonetics, 
+      question: this.aggregateMeanings(wordInfo.meanings), 
+      answer: cleanWord 
+    };
+  },
+
+  // 移除非字母字符，修复如 “frighten/” 的脏数据
+  sanitizeWord(raw) {
+    if (!raw || typeof raw !== 'string') return '';
+    return raw.replace(/[^a-zA-Z]/g, '');
   },
 
   playWordAudio(eventOrWord) {
@@ -146,9 +163,9 @@ Page({
 
     const urls = [
       `https://dict.youdao.com/dictvoice?type=0&audio=${encodeURIComponent(wordToPlay)}`,
-      `https://dict.youdao.com/dictvoice?type=1&audio=${encodeURIComponent(wordToPlay)}`,
-      // 备用：百度 TTS（在线合成），稳定性更高
-      `https://tts.baidu.com/text2audio?lan=en&ie=UTF-8&spd=5&text=${encodeURIComponent(wordToPlay)}`
+      `https://dict.youdao.com/dictvoice?type=1&audio=${encodeURIComponent(wordToPlay)}`
+      // 如需百度 TTS，可放开下一行，但其接口偶发 500
+      //,`https://tts.baidu.com/text2audio?lan=en&ie=UTF-8&spd=5&text=${encodeURIComponent(wordToPlay)}`
     ];
 
     let idx = 0;
@@ -194,7 +211,12 @@ Page({
   setupSpellingTiles(word) {
     const letters = (word || '').split('');
     const bank = letters.map((ch, i) => ({ char: ch, used: false, picked: false, idx: i }));
-    this.setData({ letterBank: this.shuffle(bank), chosenLetters: [], chosenShake: false });
+    
+    this.setData({ 
+      letterBank: this.shuffle(bank), 
+      chosenLetters: [], 
+      chosenShake: false
+    });
   },
 
   onLetterTap(e) {
@@ -263,6 +285,9 @@ Page({
       feedback.message = '回答错误';
       this.setData({ feedback });
     }
+
+    // 保存答题快照，供“上一个”回看
+    this.saveAnswerSnapshot();
   },
 
   fetchWordKnowledge(word) {
@@ -310,11 +335,13 @@ Page({
     });
     this.setData({ isAnswered: true, 'currentQuestion.options': newOptions });
     this.handleAnswer(isCorrect);
+    // 答题完成后自动播放目标单词发音（统一替代对/错提示音）
+    this.playWordAudio(this.data.currentQuestion.word);
 
     // 增强的反馈效果
     if (isCorrect) {
       wx.vibrateShort({ type: 'medium' });
-      correctAudio.play();
+      // 取消对/错提示音，由上面的单词发音替代
       
       // 庆祝效果：延迟显示继续按钮
       setTimeout(() => {
@@ -323,7 +350,7 @@ Page({
       
     } else {
       wx.vibrateShort({ type: 'heavy' });
-      errorAudio.play();
+      // 取消错误提示音
     }
   },
 
@@ -346,7 +373,10 @@ Page({
       
       // 增强的成功反馈
       wx.vibrateShort({ type: 'medium' });
-      correctAudio.play();
+      // 取消对/错提示音，播放目标单词发音
+      this.playWordAudio(this.data.currentQuestion.word);
+      
+      // 答对后无需重新生成例句，例句在进入题目时已显示
       
       // 庆祝效果：延迟显示继续按钮，增加成就感
       setTimeout(() => {
@@ -360,10 +390,301 @@ Page({
       });
       this.handleAnswer(false);
       
-      // 错误反馈
+      // 播放目标单词发音（替代错误提示音）
       wx.vibrateShort({ type: 'heavy' });
-      errorAudio.play();
+      this.playWordAudio(this.data.currentQuestion.word);
+
+      // 答错后无需重新生成例句，例句在进入题目时已显示
     }
+  },
+
+  // 保存答题快照（用于回看已做过的题目）
+  saveAnswerSnapshot() {
+    const idx = this.data.currentWordIndex;
+    if (!this._snapshots) this._snapshots = [];
+    const q = this.data.currentQuestion || {};
+    if (q.type === 'mc') {
+      this._snapshots[idx] = {
+        mode: 'mc',
+        word: q.word,
+        phonetics: q.phonetics,
+        options: (q.options || []).map(o => ({ ...o })),
+        answer: q.answer
+      };
+    } else if (q.type === 'sp') {
+      const chosen = (this.data.chosenLetters || []).map(c => c.char).join('') || this.data.userSpellingInput || '';
+      this._snapshots[idx] = {
+        mode: 'sp',
+        word: q.word,
+        phonetics: q.phonetics,
+        question: q.question,
+        answer: q.answer,
+        chosen,
+        spellingDiff: this.data.spellingDiff,
+        spStageClass: this.data.spStageClass
+      };
+    }
+    this.updateReviewAvailability();
+  },
+
+  // 回看上一题（展示已完成界面，不可重新作答）
+  prevWordReview() {
+    if (!this._snapshots) return;
+    const i = Math.max(0, this.data.currentWordIndex - 1);
+    this.setData({ currentWordIndex: i }, () => this.showSnapshot(i));
+  },
+
+  showSnapshot(i) {
+    const snap = this._snapshots && this._snapshots[i];
+    if (!snap) { this.generateQuestion(); return; }
+    if (snap.mode === 'mc') {
+      this.setData({
+        currentQuestion: { type: 'mc', word: snap.word, phonetics: snap.phonetics, options: snap.options, answer: snap.answer },
+        isAnswered: true,
+        smartCards: this.data.smartCards || []
+      });
+    } else {
+      const chosenLetters = (snap.chosen || '').split('').map(ch => ({ char: ch }));
+      this.setData({
+        currentQuestion: { type: 'sp', word: snap.word, phonetics: snap.phonetics, question: snap.question, answer: snap.answer },
+        isAnswered: true,
+        chosenLetters,
+        spStageClass: snap.spStageClass || '',
+        spellingDiff: snap.spellingDiff || null,
+        smartCards: this.data.smartCards || []
+      });
+    }
+  },
+
+  // 纠错建议（启发式）
+  analyzeSpellingError(user, correct) {
+    if (!user || !correct) return '';
+    const u = user.split('');
+    const c = correct.split('');
+    // 相邻换位
+    if (u.length === c.length) {
+      const diffIdx = [];
+      for (let i = 0; i < c.length; i++) if (u[i] !== c[i]) diffIdx.push(i);
+      if (diffIdx.length === 2 && diffIdx[1] === diffIdx[0] + 1 && u[diffIdx[0]] === c[diffIdx[1]] && u[diffIdx[1]] === c[diffIdx[0]]) {
+        return `注意顺序：把 “${c[diffIdx[0]]}${c[diffIdx[1]]}” 写反了。`;
+      }
+      if (diffIdx.length === 1) {
+        const i = diffIdx[0];
+        const similarGroups = [
+          ['i','l','1'], ['o','0'], ['u','v'], ['m','n'],
+          ['b','d','p','q'], ['c','e'], ['s','z'], ['g','q'], ['t','f']
+        ];
+        const hit = similarGroups.find(g => g.includes(u[i]) && g.includes(c[i]));
+        if (hit) return `易混淆字母：把 “${c[i]}” 看成了 “${u[i]}”。`;
+        return `可能把 “${c[i]}” 写成了 “${u[i]}”，请逐字对照。`;
+      }
+    }
+    // 少写/多写 1 个字符
+    if (u.length + 1 === c.length) {
+      let i = 0, j = 0;
+      while (i < u.length && j < c.length) { if (u[i] === c[j]) { i++; j++; } else { return `少写了字母 “${c[j]}”。`; } }
+      if (j < c.length) return `少写了字母 “${c[j]}”。`;
+    }
+    if (u.length === c.length + 1) {
+      let i = 0, j = 0;
+      while (i < u.length && j < c.length) { if (u[i] === c[j]) { i++; j++; } else { return `多写了字母 “${u[i]}”。`; } }
+      if (i < u.length) return `多写了字母 “${u[i]}”。`;
+    }
+    return '按照发音节奏，慢一点逐字拼写；必要时分段回想单词结构。';
+  },
+  // 轻量智能内容选择器：从词典接口抓取数据，生成不超过3条卡片
+  async prepareSmartCards(word, question) {
+    try {
+      console.log('开始为单词加载智能卡片:', word);
+      
+      // 若教师编辑时删得很"干净"，也要尽力补全；允许并发加载，超时静默
+      const timeout = (p) => new Promise((resolve) => {
+        let done = false;
+        const t = setTimeout(() => { 
+          if (!done) {
+            console.log('API超时:', p);
+            resolve(null); 
+          }
+        }, 2000);  // 增加超时时间到2秒
+        p.then(v => { done = true; clearTimeout(t); resolve(v); }).catch(e => { 
+          console.log('API异常:', e);
+          done = true; clearTimeout(t); resolve(null); 
+        });
+      });
+
+      const [sentence, etym, synonyms, phrases] = await Promise.all([
+        timeout(this.fetchExampleSentence(word)),
+        timeout(this.fetchEtymology(word)),
+        timeout(this.fetchSynonyms(word)),
+        timeout(this.fetchPhrases(word)),
+      ]);
+
+      console.log('API结果:', { sentence, etym, synonyms, phrases });
+
+      const cards = [];
+      if (sentence) cards.push({ title: '例句', content: sentence });
+      if (etym) cards.push({ title: '词源', content: etym });
+      if (synonyms) cards.push({ title: '同/近义', content: synonyms });
+      if (phrases) cards.push({ title: '常见搭配', content: phrases });
+
+      // 兜底模板：当外部接口均为空时给出一条轻提示
+      if (cards.length === 0) {
+        console.log('所有API均无结果，使用fallback');
+        const fallback = this.buildFallbackTip(word, question);
+        if (fallback) cards.push({ title: '记忆提示', content: fallback });
+      }
+      
+      console.log('最终智能卡片:', cards);
+      this.setData({ smartCards: (cards || []).slice(0, 3) });
+    } catch (e) { 
+      console.error('prepareSmartCards异常:', e);
+    }
+  },
+
+  // 已废弃的方法，保留以防其他地方引用
+  getRandomObject() {
+    const objects = ['books', 'homework', 'exercise', 'practice', 'music'];
+    return objects[Math.floor(Math.random() * objects.length)];
+  },
+
+  getChineseAction() {
+    const actions = ['学习', '练习', '阅读', '思考', '工作'];
+    return actions[Math.floor(Math.random() * actions.length)];
+  },
+
+
+
+  buildFallbackTip(word, question) {
+    // 保留但简化，主要用于调试
+    return `${word} - 记忆小贴士`;
+  },
+
+  fetchExampleSentence(word) {
+    return new Promise((resolve) => {
+      const url = `https://dict.youdao.com/jsonapi?q=${encodeURIComponent(word)}`;
+      wx.request({
+        url,
+        success: (res) => {
+          try {
+            // 简单取首条例句（若存在），并去掉 html tag，避免“显示不完整/被标签断行”的问题
+            const sentence = res.data && res.data.blng_sents_part && res.data.blng_sents_part.sents && res.data.blng_sents_part.sents[0];
+            if (sentence && sentence.eng && sentence.chn) {
+              const eng = String(sentence.eng).replace(/<[^>]+>/g, '');
+              const chn = String(sentence.chn).replace(/<[^>]+>/g, '');
+              resolve(`${eng} \n${chn}`);
+              return;
+            }
+          } catch (_) {}
+          resolve(null);
+        },
+        fail: () => resolve(null)
+      });
+    });
+  },
+
+  fetchEtymology(word) {
+    return new Promise((resolve) => {
+      const url = `https://dict.youdao.com/jsonapi_s?doctype=json&jsonversion=4&q=${encodeURIComponent(word)}`;
+      wx.request({
+        url,
+        success: (res) => {
+          try {
+            const data = res.data;
+            if (data.etym && data.etym.etyms && data.etym.etyms.zh) {
+              const text = (data.etym.etyms.zh.value || '').replace(/<[^>]+>/g, '');
+              resolve(text);
+              return;
+            }
+          } catch (_) {}
+          resolve(null);
+        },
+        fail: () => resolve(null)
+      });
+    });
+  },
+
+  fetchSynonyms(word) {
+    return new Promise((resolve) => {
+      const url = `https://dict.youdao.com/jsonapi_s?doctype=json&jsonversion=4&q=${encodeURIComponent(word)}`;
+      wx.request({
+        url,
+        success: (res) => {
+          try {
+            const rels = res.data && res.data.rel_word && res.data.rel_word.rels;
+            if (rels && rels.length > 0) {
+              // 混合不同类别的联想词，提高“新鲜感”
+              const buckets = rels.slice(0,3); // 取最多前三类
+              const pick = [];
+              buckets.forEach(b => {
+                (b.words || []).slice(0,2).forEach(w => pick.push(w.word));
+              });
+              const words = pick.slice(0,6).join(', ');
+              if (words) {
+                resolve(words);
+                return;
+              }
+            }
+          } catch (_) {}
+          resolve(null);
+        },
+        fail: () => resolve(null)
+      });
+    });
+  },
+
+  // 常见搭配/短语（从 jsonapi_s 中的 phrs 提取多条，健壮解析）
+  fetchPhrases(word) {
+    return new Promise((resolve) => {
+      const url = `https://dict.youdao.com/jsonapi_s?doctype=json&jsonversion=4&q=${encodeURIComponent(word)}`;
+      wx.request({
+        url,
+        success: (res) => {
+          try {
+            const phrs = res.data && res.data.phrs && res.data.phrs.phrs;
+            if (phrs && Array.isArray(phrs) && phrs.length > 0) {
+              const list = [];
+              
+              for (let i = 0; i < Math.min(3, phrs.length); i++) {
+                const p = phrs[i];
+                if (!p || !p.phr) continue;
+                
+                // 安全提取短语
+                let headword = '';
+                if (p.phr.headword && typeof p.phr.headword === 'string') {
+                  headword = p.phr.headword.replace(/<[^>]+>/g, '').trim();
+                }
+                
+                // 安全提取翻译
+                let translation = '';
+                try {
+                  const trs = p.phr.trs;
+                  if (trs && Array.isArray(trs) && trs[0] && trs[0].tr && trs[0].tr.l && trs[0].tr.l.i) {
+                    const trans = trs[0].tr.l.i;
+                    translation = Array.isArray(trans) ? String(trans[0] || '') : String(trans || '');
+                    translation = translation.replace(/<[^>]+>/g, '').trim();
+                  }
+                } catch (e) {
+                  continue;
+                }
+                
+                if (headword && translation) {
+                  list.push(`${headword}：${translation}`);
+                }
+              }
+              
+              if (list.length > 0) {
+                resolve(list.join('；'));
+                return;
+              }
+            }
+          } catch(error) {
+            console.log('短语解析异常:', error);
+          }
+          resolve(null);
+        },
+        fail: () => resolve(null)
+      });
+    });
   },
 
   onTileSpellingSubmit() { this.onSpellingSubmit(); },
@@ -371,16 +692,16 @@ Page({
   generateSpellingDiff(userInput, correctAnswer) {
     const userChars = userInput.split('');
     const correctChars = correctAnswer.split('');
-    const maxLength = Math.max(userChars.length, correctChars.length);
-    const diff = [];
-    for (let i = 0; i < maxLength; i++) {
-      const u = userChars[i], c = correctChars[i];
-      if (u && u === c) diff.push({ char: u, status: 'correct' });
-      else if (u) diff.push({ char: u, status: 'incorrect' });
-    }
+    
+    // 用户答案：所有字母都显示为错误（红色），避免混淆
+    const userDiff = userChars.map(char => ({ char, status: 'incorrect' }));
+    
+    // 正确答案：所有字母都显示为正确（绿色）
+    const correctDiff = correctChars.map(char => ({ char, status: 'correct' }));
+    
     return {
-      userInput: diff,
-      correctAnswer: correctChars.map(char => ({ char, status: 'correct' }))
+      userInput: userDiff,
+      correctAnswer: correctDiff
     };
   },
 
@@ -402,6 +723,39 @@ Page({
     } else {
       console.log('最后一题完成，调用 finishPractice');
       this.finishPractice();
+    }
+  },
+
+  // 计算回看可用性（只能在已作答范围内自由回看）
+  updateReviewAvailability() {
+    const answeredMax = (this._snapshots ? this._snapshots.length : 0) - 1; // 已完成最大索引
+    const i = this.data.currentWordIndex;
+    this.setData({
+      canPrevReview: i > 0 && !!(this._snapshots && this._snapshots[i - 1]),
+      canNextReview: i < answeredMax
+    });
+  },
+
+  onPrevTap() { if (this.data.canPrevReview) this.prevWordReview(); },
+  onNextTap() {
+    // 仅允许在已完成范围内前进回看
+    const answeredMax = (this._snapshots ? this._snapshots.length : 0) - 1;
+    const next = Math.min(this.data.currentWordIndex + 1, answeredMax);
+    if (next > this.data.currentWordIndex) {
+      this.setData({ currentWordIndex: next }, () => this.showSnapshot(next));
+    }
+  },
+
+  // 轻滑手势：左滑下一题（回看），右滑上一题（回看）
+  onTouchStart(e) { this._touchX = e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientX : 0; },
+  onTouchEnd(e) {
+    const endX = e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientX : 0;
+    const dx = endX - (this._touchX || 0);
+    const threshold = 40; // 40px 轻滑阈值
+    if (dx > threshold && this.data.canPrevReview) {
+      this.prevWordReview();
+    } else if (dx < -threshold && this.data.canNextReview) {
+      this.onNextTap();
     }
   },
 
@@ -443,7 +797,7 @@ Page({
           recordType: this.data.reviewMode ? 'mistake_review' : 'practice',
           durationMs,
           sessionId,
-          device: wx.getSystemInfoSync ? wx.getSystemInfoSync().model : 'unknown'
+          device: 'miniprogram'
         }
       }).catch(err => {
         console.error('保存练习记录失败:', err);

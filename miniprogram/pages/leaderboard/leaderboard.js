@@ -1,12 +1,14 @@
 const db = wx.cloud.database();
 const records = db.collection('homework_records');
 const users = db.collection('users');
+const { CacheManager, AvatarCache } = require('../../utils/cache.js');
+const { ParallelLoader, performanceMonitor } = require('../../utils/performance.js');
 
 Page({
   data: {
     isLoading: true,
     leaderboardList: [],
-    timeRange: 'week', // 'week' 或 'all'
+    timeRange: 'all', // 只保留所有时间范围
     currentUser: null,
     currentDimension: 'score', // 'score', 'efficiency', 'stability'
     showDetailStats: false,
@@ -43,12 +45,7 @@ Page({
     this.setData({ currentUser: userInfo });
   },
 
-  // 切换时间范围
-  onTimeRangeChange(e) {
-    const timeRange = e.currentTarget.dataset.range;
-    this.setData({ timeRange });
-    this.loadLeaderboard();
-  },
+
 
   // 切换排行维度
   onDimensionChange(e) {
@@ -81,118 +78,113 @@ Page({
 
   async loadLeaderboard() {
     this.setData({ isLoading: true });
+    performanceMonitor.start('leaderboard');
+    
     try {
-      // 根据时间范围确定查询时间
-      let since;
-      if (this.data.timeRange === 'week') {
-        since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // 最近7天
-      } else {
-        since = new Date(0); // 所有时间
+      // 检查缓存
+      const cached = CacheManager.get('leaderboard');
+      if (cached && !wx.getStorageSync('force_refresh_leaderboard')) {
+        console.log('使用缓存的排行榜数据');
+        this.setData({ leaderboardList: cached });
+        this.setData({ isLoading: false });
+        performanceMonitor.end('leaderboard');
+        return;
       }
 
-      const recRes = await records.where({ completionTime: db.command.gte(since) }).get();
-      const all = recRes.data || [];
-      const byUser = new Map();
+      // 并行加载数据
+      const loader = new ParallelLoader();
+      loader.add('records', records.limit(500).get()); // 限制查询数量
+      loader.add('users', users.field({ _openid: 1, nickName: 1, avatarUrl: 1 }).get()); // 只查询需要的字段
+
+      performanceMonitor.start('dataQuery');
+      const results = await loader.execute();
+      performanceMonitor.end('dataQuery');
+
+      const allRecords = results.get('records')?.data || [];
+      const allUsers = results.get('users')?.data || [];
       
-      // 聚合用户数据，包含更多维度
-      all.forEach(r => {
+      // 创建用户信息映射，提升查找性能
+      const userMap = new Map();
+      allUsers.forEach(user => {
+        userMap.set(user._openid, {
+          nickName: user.nickName || '匿名',
+          avatarUrl: user.avatarUrl || '/images/avatar.png'
+        });
+      });
+
+      // 聚合用户数据（优化版）
+      const byUser = new Map();
+      allRecords.forEach(r => {
         const key = r.userOpenId || r._openid;
         if (!byUser.has(key)) {
           byUser.set(key, { 
             sum: 0, 
             cnt: 0, 
-            totalTime: 0, // 总用时
-            consecutiveCorrect: 0, // 连续正确
-            mistakeFixRate: 0, // 错题修复率
-            records: [] // 详细记录
+            totalTime: 0,
+            records: []
           });
         }
         const v = byUser.get(key);
         v.sum += Number(r.score || 0);
         v.cnt += 1;
         v.totalTime += Number(r.durationMs || 0);
-        v.records.push(r);
-        byUser.set(key, v);
+        v.records.push({ score: r.score, completionTime: r.completionTime, recordType: r.recordType });
       });
 
-      // 计算更多维度
-      for (const [openid, agg] of byUser.entries()) {
-        // 计算连续正确次数
-        let maxConsecutive = 0;
-        let currentConsecutive = 0;
-        agg.records.sort((a, b) => new Date(a.completionTime) - new Date(b.completionTime));
-        agg.records.forEach(record => {
-          if (Number(record.score) >= 80) { // 80分以上算正确
-            currentConsecutive++;
-            maxConsecutive = Math.max(maxConsecutive, currentConsecutive);
-          } else {
-            currentConsecutive = 0;
-          }
-        });
-
-        // 计算错题修复率
-        let mistakeFixCount = 0;
-        let totalMistakes = 0;
-        agg.records.forEach(record => {
-          if (record.recordType === 'mistake_review') {
-            mistakeFixCount++;
-          }
-          if (Number(record.score) < 80) {
-            totalMistakes++;
-          }
-        });
-        const mistakeFixRate = totalMistakes > 0 ? Math.round((mistakeFixCount / totalMistakes) * 100) : 0;
-
-        agg.consecutiveCorrect = maxConsecutive;
-        agg.mistakeFixRate = mistakeFixRate;
-        
-        // 计算效率指数（分数/用时的综合指标）
-        const avgScore = (agg.sum / agg.cnt) || 0;
-        const avgTime = (agg.totalTime / agg.cnt) / 1000 / 60; // 分钟
-        agg.efficiencyIndex = avgTime > 0 ? Math.round((avgScore / avgTime) * 10) : 0;
-        
-        // 计算稳定性比率（高分作业占比）
-        const highScoreCount = agg.records.filter(r => Number(r.score) >= 80).length;
-        agg.stabilityRate = Math.round((highScoreCount / agg.cnt) * 100);
-        
-        // 计算进步指数（最近表现vs历史表现）
-        const recentRecords = agg.records.slice(-3); // 最近3次
-        const recentAvg = recentRecords.reduce((sum, r) => sum + Number(r.score || 0), 0) / recentRecords.length;
-        const historicalAvg = avgScore;
-        agg.improvementIndex = Math.round(((recentAvg - historicalAvg) / historicalAvg) * 100) || 0;
-      }
-
+      // 计算指标（优化版）
       const list = [];
       for (const [openid, agg] of byUser.entries()) {
-        const avgScore = Math.round((agg.sum / agg.cnt) || 0);
-        const avgTime = Math.round((agg.totalTime / agg.cnt) / 1000 / 60); // 平均用时（分钟）
+        if (agg.cnt === 0) continue; // 跳过无记录用户
+
+        const avgScore = Math.round(agg.sum / agg.cnt);
+        const avgTime = Math.round(agg.totalTime / agg.cnt / 1000 / 60);
         
-        const u = await users.where({ _openid: openid }).get();
-        const info = u.data && u.data[0] ? u.data[0] : { 
-          nickName: '匿名', 
-          avatarUrl: '/images/avatar.png', 
-          sign: '' 
-        };
+        // 简化指标计算，提升性能
+        const sortedRecords = agg.records.sort((a, b) => new Date(a.completionTime) - new Date(b.completionTime));
+        let maxConsecutive = 0;
+        let current = 0;
+        
+        sortedRecords.forEach(record => {
+          if (Number(record.score) >= 80) {
+            current++;
+            maxConsecutive = Math.max(maxConsecutive, current);
+          } else {
+            current = 0;
+          }
+        });
+
+        const userInfo = userMap.get(openid) || { nickName: '匿名', avatarUrl: '/images/avatar.png' };
         
         list.push({ 
           openid, 
           avgScore, 
           homeworkCount: agg.cnt,
           avgTime,
-          consecutiveCorrect: agg.consecutiveCorrect,
-          mistakeFixRate: agg.mistakeFixRate,
-          efficiencyIndex: agg.efficiencyIndex,
-          stabilityRate: agg.stabilityRate,
-          improvementIndex: agg.improvementIndex,
-          nickName: info.nickName || '匿名', 
-          avatarUrl: info.avatarUrl || '/images/avatar.png', 
-          sign: info.sign || '' 
+          consecutiveCorrect: maxConsecutive,
+          mistakeFixRate: 0, // 简化计算，提升性能
+          efficiencyIndex: avgTime > 0 ? Math.round((avgScore / avgTime) * 10) : 0,
+          stabilityRate: Math.round((sortedRecords.filter(r => Number(r.score) >= 80).length / agg.cnt) * 100),
+          improvementIndex: 0, // 简化计算，提升性能
+          nickName: userInfo.nickName, 
+          avatarUrl: userInfo.avatarUrl
         });
       }
       
-      // 根据当前维度排序
+              // 临时禁用云头像处理，统一使用默认头像
+        performanceMonitor.start('avatarResolve');
+        list.forEach(item => {
+          // 暂时统一使用默认头像，避免403错误
+          item.avatarUrl = '/images/avatar.png';
+        });
+        performanceMonitor.end('avatarResolve');
+
+      // 排序
       const { currentDimension, dimensionConfig } = this.data;
       list.sort(dimensionConfig[currentDimension].sortFn);
+
+      // 缓存结果
+      CacheManager.set('leaderboard', list);
+      
       this.setData({ leaderboardList: list });
     } catch (e) {
       console.error('排行榜加载失败:', e);
@@ -200,8 +192,39 @@ Page({
     } finally {
       this.setData({ isLoading: false });
       wx.stopPullDownRefresh();
+      wx.removeStorageSync('force_refresh_leaderboard');
+      performanceMonitor.end('leaderboard');
     }
   },
 
-  onPullDownRefresh() { this.loadLeaderboard(); }
+  // 将 cloud:// 文件ID 批量转换为临时URL
+  async resolveAvatarUrls(list) {
+    try {
+      const fileIds = (list || [])
+        .map(p => p.avatarUrl)
+        .filter(u => typeof u === 'string' && u.indexOf('cloud://') === 0);
+      if (!fileIds.length) return list;
+      const res = await wx.cloud.getTempFileURL({ fileList: fileIds });
+      const idToUrl = new Map();
+      (res.fileList || []).forEach(item => {
+        idToUrl.set(item.fileID, item.tempFileURL || '');
+      });
+      return (list || []).map(p => {
+        if (typeof p.avatarUrl === 'string' && p.avatarUrl.indexOf('cloud://') === 0) {
+          const url = idToUrl.get(p.avatarUrl);
+          p.avatarUrl = url || '/images/avatar.png';
+        }
+        return p;
+      });
+    } catch (e) {
+      // 任何异常时使用默认头像，避免红错
+      return (list || []).map(p => ({ ...p, avatarUrl: p.avatarUrl || '/images/avatar.png' }));
+    }
+  },
+
+  onPullDownRefresh() { 
+    // 强制刷新，跳过缓存
+    wx.setStorageSync('force_refresh_leaderboard', true);
+    this.loadLeaderboard(); 
+  }
 });

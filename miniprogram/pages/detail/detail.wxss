@@ -154,13 +154,8 @@ page {
   letter-spacing: -2rpx;
 }
 
-.sp-question-word {
-  font-size: var(--font-size-2xl);
-  font-weight: 700;
-  color: var(--gray-800);
-  line-height: 1.7;
-  margin-bottom: var(--spacing-md);
-}
+/* 统一拼写题标题风格为 MC 风格（紫色） */
+.sp-question-word { display:none; }
 
 .sp-question-hint {
   font-size: var(--font-size-md);
@@ -202,23 +197,46 @@ page {
 /* 移动端优化的交互区域 */
 .interaction-zone {
   position: fixed;
-  bottom: 120rpx; /* 为底部按钮留出空间 */
+  bottom: 120rpx; /* 仅为继续按钮预留空间 */
   left: 0;
   right: 0;
-  padding: var(--spacing-xl);
+  padding: var(--spacing-xl) var(--spacing-xl) calc(var(--spacing-xl) + 20rpx);
   background: white;
   border-top-left-radius: var(--radius-xl);
   border-top-right-radius: var(--radius-xl);
-  box-shadow: var(--shadow-xl);
+  /* 去除底部阴影线 */
+  box-shadow: none;
   z-index: 100;
-  min-height: 400rpx; /* 确保有足够的触摸区域 */
 }
+
+
+
+/* 回看导航箭头（几乎透明） */
+.review-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 56rpx; /* 更小更淡 */
+  height: 56rpx;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.02);
+  color: rgba(0,0,0,0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  user-select: none;
+}
+.review-nav.left { left: -16rpx; }
+.review-nav.right { right: -16rpx; }
+.review-nav.disabled { opacity: 0.15; pointer-events: none; }
 
 .mc-options-grid {
   display: grid;
   grid-template-columns: 1fr; /* 单列布局，避免重叠 */
   gap: var(--spacing-lg);
   margin-bottom: var(--spacing-xl);
+  min-height: 520rpx; /* 固定高度占位，避免判分后整体上移 */
 }
 
 .mc-option-card {
@@ -266,12 +284,13 @@ page {
 .mc-option-card.incorrect {
   background: linear-gradient(135deg, var(--error-color), var(--error-light));
   color: white;
-  transform: scale(0.95);
-  box-shadow: 0 12rpx 32rpx rgba(239, 68, 68, 0.4);
+  transform: scale(1.0); /* 不缩放，不位移 */
+  box-shadow: 0 8rpx 24rpx rgba(239, 68, 68, 0.3);
   border: 4rpx solid rgba(255, 255, 255, 0.3);
-  animation: incorrectShake 0.8s ease-out;
+  /* 取消大范围抖动动画，使用轻微高亮过渡 */
+  animation: incorrectSoft 0.3s ease-out;
   position: relative;
-  z-index: 1; /* 确保错误选项在正确选项之下 */
+  z-index: 1;
 }
 
 @keyframes correctGlow {
@@ -289,27 +308,9 @@ page {
   }
 }
 
-@keyframes incorrectShake {
-  0% { 
-    transform: scale(0.95);
-    box-shadow: 0 12rpx 32rpx rgba(239, 68, 68, 0.4);
-  }
-  25% { 
-    transform: scale(0.92);
-    box-shadow: 0 8rpx 24rpx rgba(239, 68, 68, 0.6);
-  }
-  50% { 
-    transform: scale(0.98);
-    box-shadow: 0 16rpx 40rpx rgba(239, 68, 68, 0.5);
-  }
-  75% { 
-    transform: scale(0.94);
-    box-shadow: 0 10rpx 28rpx rgba(239, 68, 68, 0.6);
-  }
-  100% { 
-    transform: scale(0.95);
-    box-shadow: 0 12rpx 32rpx rgba(239, 68, 68, 0.4);
-  }
+@keyframes incorrectSoft {
+  0% { box-shadow: 0 4rpx 12rpx rgba(239, 68, 68, 0.2); }
+  100% { box-shadow: 0 8rpx 24rpx rgba(239, 68, 68, 0.3); }
 }
 
 
@@ -405,17 +406,8 @@ page {
   box-shadow: 0 0 0 4rpx rgba(239, 68, 68, 0.1);
 }
 
-/* 统一的主要操作按钮区域 */
-.primary-action-zone {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: var(--spacing-xl);
-  background: white;
-  box-shadow: var(--shadow-xl);
-  z-index: 1000;
-}
+/* 去除固定底部主按钮（改为与交互区共位） */
+.primary-action-zone { display: none; }
 
 /* 统一的主要操作按钮样式 - 心理学优化版 */
 .primary-action-btn {
@@ -574,20 +566,19 @@ page {
   }
 }
 
-/* 拼写错误反馈样式 */
-.spelling-error-feedback {
-  position: fixed;
-  bottom: 200rpx;
-  left: 32rpx;
-  right: 32rpx;
-  background: white;
-  border-radius: 24rpx;
-  padding: 32rpx;
-  box-shadow: 0 12rpx 40rpx rgba(239, 68, 68, 0.2);
-  border: 2rpx solid rgba(239, 68, 68, 0.1);
-  z-index: 1001;
-  animation: errorSlideUp 0.4s ease-out;
+/* 新：交互区内的错误卡片（不遮挡按钮） */
+.sp-error-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  box-shadow: 0 6rpx 18rpx rgba(239,68,68,.18);
+  border: 2rpx solid rgba(239,68,68,.12);
+  position: relative;
+  z-index: 2;
+  margin-bottom: 12rpx;
 }
+
+
 
 .error-header {
   display: flex;
@@ -1223,9 +1214,9 @@ page {
 .sp-chosen {
   background: #fff;
   border-radius: 16rpx;
-  padding: 20rpx;
+  padding: 20rpx 20rpx 12rpx;
   box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.06);
-  margin-bottom: 24rpx;
+  margin-bottom: 16rpx;
 }
 .sp-chosen-letters {
   min-height: 64rpx;
@@ -1276,7 +1267,7 @@ page {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 16rpx;
-  margin-bottom: 24rpx;
+  margin-bottom: 12rpx;
 }
 .sp-tile {
   height: 88rpx;
@@ -1310,11 +1301,25 @@ page {
   font-weight: 600;
   border-radius: 16rpx;
   border: none;
+  margin-top: 20rpx; /* 与字母区拉开小距离（≈0.3cm 视觉量级） */
+  box-shadow: none; /* 去掉按钮下方阴影线 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: normal;
 }
 .sp-submit-btn.active {
   background: linear-gradient(135deg, #6366f1, #4f46e5);
   box-shadow: 0 6rpx 16rpx rgba(99,102,241,0.28);
 }
+
+.sp-submit-btn.continue {
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 6rpx 16rpx rgba(16,185,129,0.28);
+}
+.sp-submit-btn.continue.placeholder { opacity: .3; pointer-events: none; }
+
+
 /* 选中字母卡片时的弹跳动效 */
 .sp-tile.picked {
   animation: tilePick 250ms cubic-bezier(.2, .9, .3, 1.2);

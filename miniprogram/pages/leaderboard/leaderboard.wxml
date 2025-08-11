@@ -25,24 +25,14 @@
       </scroll-view>
     </view>
     
-    <!-- 时间范围切换 -->
-    <view class="time-range-selector">
-      <view class="range-btn {{timeRange === 'week' ? 'active' : ''}}" 
-            bindtap="onTimeRangeChange" data-range="week">
-        周榜
-      </view>
-      <view class="range-btn {{timeRange === 'all' ? 'active' : ''}}" 
-            bindtap="onTimeRangeChange" data-range="all">
-        总榜
-      </view>
-    </view>
+
   </view>
 
   <view class="podium" wx:if="{{leaderboardList.length >= 3}}">
     <view class="podium-item silver" bindtap="onPlayerTap" data-player="{{leaderboardList[1]}}">
       <image class="avatar" src="{{leaderboardList[1].avatarUrl}}"></image>
       <view class="nickname">{{leaderboardList[1].nickName}}</view>
-      <view class="signature" wx:if="{{leaderboardList[1].sign}}">{{leaderboardList[1].sign}}</view>
+
       <view class="podium-stats" wx:if="{{showDetailStats}}">
         <text class="podium-stat-item">{{leaderboardList[1].homeworkCount}}次</text>
         <text class="podium-stat-item">{{leaderboardList[1].avgTime}}分钟</text>
@@ -54,7 +44,7 @@
     <view class="podium-item gold" bindtap="onPlayerTap" data-player="{{leaderboardList[0]}}">
       <image class="avatar" src="{{leaderboardList[0].avatarUrl}}"></image>
       <view class="nickname">{{leaderboardList[0].nickName}}</view>
-      <view class="signature" wx:if="{{leaderboardList[0].sign}}">{{leaderboardList[0].sign}}</view>
+
       <view class="podium-stats" wx:if="{{showDetailStats}}">
         <text class="podium-stat-item">{{leaderboardList[0].homeworkCount}}次</text>
         <text class="podium-stat-item">{{leaderboardList[0].avgTime}}分钟</text>
@@ -66,7 +56,7 @@
     <view class="podium-item bronze" bindtap="onPlayerTap" data-player="{{leaderboardList[2]}}">
       <image class="avatar" src="{{leaderboardList[2].avatarUrl}}"></image>
       <view class="nickname">{{leaderboardList[2].nickName}}</view>
-      <view class="signature" wx:if="{{leaderboardList[2].sign}}">{{leaderboardList[2].sign}}</view>
+
       <view class="podium-stats" wx:if="{{showDetailStats}}">
         <text class="podium-stat-item">{{leaderboardList[2].homeworkCount}}次</text>
         <text class="podium-stat-item">{{leaderboardList[2].avgTime}}分钟</text>
@@ -84,7 +74,7 @@
         <image class="rank-avatar" src="{{player.avatarUrl}}"></image>
         <view class="rank-info">
           <view class="rank-nickname">{{player.nickName}}</view>
-          <view class="rank-sign" wx:if="{{player.sign}}">{{player.sign}}</view>
+
           <view class="rank-stats" wx:if="{{showDetailStats}}">
             <text class="stat-item">已完成 {{player.homeworkCount}} 次</text>
             <text class="stat-item">平均用时 {{player.avgTime}} 分钟</text>

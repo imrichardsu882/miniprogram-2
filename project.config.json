@@ -4,7 +4,7 @@
   "setting": {
     "urlCheck": true,
     "es6": true,
-    "enhance": true,
+    "enhance": false,
     "postcss": true,
     "preloadBackgroundData": false,
     "minified": true,
@@ -17,7 +17,7 @@
     "uglifyFileName": false,
     "checkInvalidKey": true,
     "checkSiteMap": true,
-    "uploadWithSourceMap": true,
+    "uploadWithSourceMap": false,
     "compileHotReLoad": false,
     "useMultiFrameRuntime": true,
     "useApiHook": true,
@@ -27,17 +27,24 @@
       "disablePlugins": [],
       "outputPath": ""
     },
-    "useCompilerPlugins": false,
+    "useCompilerPlugins": [],
     "condition": false,
     "swc": false,
-    "disableSWC": true
+    "disableSWC": true,
+    "compileWorklet": false,
+    "packNpmManually": false,
+    "packNpmRelationList": [],
+    "minifyWXSS": false,
+    "minifyWXML": false,
+    "localPlugins": false,
+    "disableUseStrict": false
   },
   "requestDomain": [
     "https://dict.youdao.com"
   ],
   "appid": "wxc40564f3e6b2ed18",
   "projectname": "三通英语助手-标准版",
-  "libVersion": "2.20.1",
+  "libVersion": "3.8.12",
   "condition": {},
   "compileType": "miniprogram",
   "srcMiniprogramRoot": "miniprogram/",

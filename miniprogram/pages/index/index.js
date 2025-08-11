@@ -2,6 +2,8 @@
 const app = getApp();
 const db = wx.cloud.database();
 const usersCollection = db.collection('users');
+const { CacheManager, AvatarCache } = require('../../utils/cache.js');
+const { ParallelLoader, performanceMonitor, BatchSetData } = require('../../utils/performance.js');
 const TEACHER_PASSWORD = '333';
 
 // 本地口令授权令牌：7天有效
@@ -30,6 +32,9 @@ Page({
 
   onLoad() {
     console.log('=== 主页加载开始 ===');
+    // 初始化批量setData工具
+    this.batchSetData = new BatchSetData(this);
+    performanceMonitor.start('indexLoad');
     this.checkLoginState();
   },
 
@@ -57,7 +62,19 @@ Page({
         
         app.globalData.userInfo = userInfo;
         console.log('设置页面状态为 role，用户信息:', userInfo);
-        this.setData({ userInfo, pageState: 'role' });
+        
+        // 先设置默认头像，避免空白显示
+        const userInfoWithDefaultAvatar = {
+          ...userInfo,
+          avatarUrl: userInfo.avatarUrl || '/images/avatar.png'
+        };
+        
+        this.setData({ userInfo: userInfoWithDefaultAvatar, pageState: 'role' }, () => {
+          // 如果是云头像，异步转换
+          if (userInfo.avatarUrl && userInfo.avatarUrl.startsWith('cloud://')) {
+            this.handleAvatarDisplay(userInfo.avatarUrl);
+          }
+        });
         console.log('页面数据设置完成，当前 userInfo:', this.data.userInfo);
         this.loadUserStats(userInfo._openid);
       } else {
@@ -69,9 +86,18 @@ Page({
     }
   },
 
-  // 加载用户学习统计
+  // 加载用户学习统计（优化版）
   async loadUserStats(openid) {
     try {
+      // 检查缓存
+      const cacheKey = `userStats_${openid}`;
+      const cached = CacheManager.get(cacheKey);
+      if (cached) {
+        console.log('使用缓存的用户统计');
+        this.batchSetData.add({ userStats: cached });
+        return;
+      }
+
       // 设置默认统计数据
       const defaultStats = {
         totalHomeworks: 0,
@@ -80,7 +106,7 @@ Page({
         bestRank: '暂无'
       };
       
-      this.setData({ userStats: defaultStats });
+      this.batchSetData.add({ userStats: defaultStats });
       
       // 验证 openid 参数
       if (!openid || typeof openid !== 'string') {
@@ -88,13 +114,16 @@ Page({
         return;
       }
       
-      // 尝试加载真实数据，添加更多查询优化
+      performanceMonitor.start('userStats');
+      
+      // 优化查询：只获取需要的字段
       const records = db.collection('homework_records');
       const recordsRes = await records.where({ 
         userOpenId: openid 
       })
-      .orderBy('createTime', 'desc') // 按时间排序
-      .limit(100) // 限制查询数量
+      .field({ score: 1, durationMs: 1, createTime: 1 }) // 只查询需要的字段
+      .orderBy('createTime', 'desc')
+      .limit(50) // 减少查询数量，提升性能
       .get();
       
       const userRecords = recordsRes.data || [];
@@ -103,23 +132,30 @@ Page({
         // 计算统计数据
         const totalHomeworks = userRecords.length;
         const totalScore = userRecords.reduce((sum, record) => sum + (Number(record.score) || 0), 0);
-        const avgScore = totalHomeworks > 0 ? Math.round(totalScore / totalHomeworks) : 0;
+        const avgScore = Math.round(totalScore / totalHomeworks);
         const totalTimeMs = userRecords.reduce((sum, record) => sum + (Number(record.durationMs) || 0), 0);
         const totalTimeMinutes = Math.round(totalTimeMs / 1000 / 60);
         
-        this.setData({
-          userStats: {
-            totalHomeworks,
-            avgScore,
-            totalTime: `${totalTimeMinutes}分钟`,
-            bestRank: '计算中...'
-          }
-        });
+        const stats = {
+          totalHomeworks,
+          avgScore,
+          totalTime: `${totalTimeMinutes}分钟`,
+          bestRank: '计算中...'
+        };
+
+        // 缓存结果
+        CacheManager.set(cacheKey, stats);
+        
+        this.batchSetData.add({ userStats: stats });
         
         console.log('用户统计加载成功:', { totalHomeworks, avgScore, totalTimeMinutes });
       } else {
         console.log('用户暂无作业记录');
+        // 缓存默认数据，避免重复查询
+        CacheManager.set(cacheKey, defaultStats, 10); // 10分钟缓存
       }
+      
+      performanceMonitor.end('userStats');
     } catch (error) {
       console.warn('加载用户统计失败，使用默认数据:', error);
       // 保持默认数据，不显示错误给用户
@@ -147,8 +183,24 @@ Page({
         this.setData({ userInfo, pageState: 'role' });
         console.log('用户认证成功:', userInfo.nickName);
       } else {
-        this.setData({ openid, pageState: 'profile' });
-        console.log('新用户，需要完善资料');
+        // 新用户直接使用微信信息创建档案
+        const userInfo = {
+          _openid: openid,
+          nickName: 'WeChat用户', // 默认昵称
+          avatarUrl: '/images/avatar.png', // 默认头像
+          createTime: db.serverDate()
+        };
+        
+        try {
+          const result = await usersCollection.add({ data: userInfo });
+          userInfo._id = result._id;
+          app.globalData.userInfo = userInfo;
+          this.setData({ userInfo, pageState: 'role' });
+          console.log('新用户档案创建成功');
+        } catch (createError) {
+          console.error('创建用户档案失败:', createError);
+          wx.showToast({ title: '创建档案失败', icon: 'none' });
+        }
       }
     } catch (error) {
       console.error('认证失败:', error);
@@ -164,10 +216,19 @@ Page({
 
   onChooseAvatar(e) { 
     console.log('选择头像结果:', e.detail);
-    if (e.detail.avatarUrl) {
-      this.setData({ avatarUrl: e.detail.avatarUrl });
-    } else {
-      console.warn('用户取消选择头像');
+    if (this.data.choosingAvatar) return;
+    this.setData({ choosingAvatar: true });
+    try {
+      const url = e.detail && e.detail.avatarUrl;
+      if (url) {
+        this.setData({ avatarUrl: url });
+      } else {
+        console.warn('用户取消选择头像');
+      }
+    } catch (err) {
+      console.error('chooseAvatar 处理失败:', err);
+    } finally {
+      setTimeout(() => this.setData({ choosingAvatar: false }), 300);
     }
   },
   onNicknameInput(e) { this.setData({ nickname: e.detail.value }); },
@@ -307,12 +368,8 @@ Page({
     // 返回到个人资料编辑页面
     const userInfo = this.data.userInfo;
     if (userInfo) {
-      this.setData({
-        pageState: 'profile',
-        avatarUrl: userInfo.avatarUrl || '',
-        nickname: userInfo.nickName || '',
-        sign: userInfo.sign || ''
-      });
+      // 直接跳转到角色选择，不再提供个人资料编辑
+      this.setData({ pageState: 'role' });
     } else {
       wx.showToast({ title: '请先登录', icon: 'none' });
     }
@@ -320,5 +377,63 @@ Page({
 
   preventModalClose() {
     // 阻止弹窗关闭
+  },
+
+  // 简化的头像显示处理：暂时禁用云头像，统一使用默认头像
+  async handleAvatarDisplay(avatarUrl) {
+    // 临时解决方案：统一使用默认头像，避免云存储403错误
+    console.log('使用默认头像 (云头像暂时禁用)');
+    this.batchSetData.add({ 
+      'userInfo.avatarUrl': '/images/avatar.png',
+      avatarUrl: '/images/avatar.png'
+    });
+    
+    /* 云头像处理代码暂时注释，等云环境配置完善后再启用
+    if (!avatarUrl) {
+      this.batchSetData.add({ 
+        'userInfo.avatarUrl': '/images/avatar.png',
+        avatarUrl: '/images/avatar.png'
+      });
+      return;
+    }
+
+    if (!avatarUrl.startsWith('cloud://')) {
+      // 非云文件，直接使用
+      return;
+    }
+
+    try {
+      console.log('处理云头像:', avatarUrl);
+      
+      const res = await wx.cloud.getTempFileURL({
+        fileList: [avatarUrl],
+        timeout: 3000
+      });
+      
+      if (res && res.fileList && res.fileList.length > 0) {
+        const file = res.fileList[0];
+        if (file.status === 0 && file.tempFileURL) {
+          console.log('云头像转换成功:', file.tempFileURL);
+          this.batchSetData.add({ 
+            'userInfo.avatarUrl': file.tempFileURL,
+            avatarUrl: file.tempFileURL
+          });
+          return;
+        }
+      }
+      
+      this.batchSetData.add({ 
+        'userInfo.avatarUrl': '/images/avatar.png',
+        avatarUrl: '/images/avatar.png'
+      });
+      
+    } catch (error) {
+      console.error('云头像转换异常:', error);
+      this.batchSetData.add({ 
+        'userInfo.avatarUrl': '/images/avatar.png',
+        avatarUrl: '/images/avatar.png'
+      });
+    }
+    */
   }
 });

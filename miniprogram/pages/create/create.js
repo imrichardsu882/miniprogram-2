@@ -16,18 +16,16 @@ Page({
     editingWordIndex: -1,
     editingWordData: { word: '', phonetics: '', meaningsStr: '' },
     
-    // 自动保存相关状态
-    autoSaveEnabled: true,
-    autoSaveStatus: '', // 'saving', 'saved', 'failed', ''
-    lastSaveTime: null,
+    // 改为“即时保存”：任意修改即立刻持久化
     hasUnsavedChanges: false,
   },
 
-  // 自动保存定时器
-  autoSaveTimer: null,
-  autoSaveDelay: 2000, // 2秒防抖延迟
+  // 即时保存无需定时器
 
   onLoad: function (options) {
+    // 强制页面背景刷新，防止残影
+    this.forceBackgroundRefresh();
+    
     if (options.id) {
       this.setData({ isEditMode: true, homeworkId: options.id });
       wx.setNavigationBarTitle({ title: '编辑作业' });
@@ -37,24 +35,22 @@ Page({
     }
   },
 
-  onUnload: function() {
-    // 页面卸载时清除定时器
-    if (this.autoSaveTimer) {
-      clearTimeout(this.autoSaveTimer);
-      this.autoSaveTimer = null;
-    }
-    if (this.saveHintTimer) {
-      clearTimeout(this.saveHintTimer);
-      this.saveHintTimer = null;
-    }
+  onShow: function() {
+    // 每次页面显示时强制刷新背景
+    this.forceBackgroundRefresh();
   },
 
-  onHide: function() {
-    // 页面隐藏时，如果有未保存的更改且开启了自动保存，立即保存
-    if (this.data.autoSaveEnabled && this.data.hasUnsavedChanges) {
-      this.performAutoSave();
-    }
+  // 强制背景刷新方法
+  forceBackgroundRefresh: function() {
+    // 短暂隐藏再显示，强制重绘
+    setTimeout(() => {
+      this.setData({ _backgroundKey: Date.now() });
+    }, 50);
   },
+
+  onUnload: function() {},
+
+  onHide: function() {},
 
   async loadHomeworkForEdit(id) {
     wx.showLoading({ title: '正在加载...' });
@@ -139,26 +135,12 @@ Page({
     }
   },
 
-  // 触发自动保存（防抖）
-  triggerAutoSave() {
-    if (!this.data.autoSaveEnabled) {
-      return;
-    }
+  // 触发即时保存
+  triggerAutoSave() { this.performAutoSave(); },
 
-    // 清除之前的定时器
-    if (this.autoSaveTimer) {
-      clearTimeout(this.autoSaveTimer);
-    }
-
-    // 设置新的定时器
-    this.autoSaveTimer = setTimeout(() => {
-      this.performAutoSave();
-    }, this.autoSaveDelay);
-  },
-
-  // 执行自动保存
+  // 执行即时保存
   async performAutoSave() {
-    if (!this.data.autoSaveEnabled || !this.data.hasUnsavedChanges) {
+    if (!this.data.hasUnsavedChanges) {
       return;
     }
 
@@ -177,7 +159,7 @@ Page({
       return;
     }
 
-    this.setData({ autoSaveStatus: 'saving' });
+    // 即时保存不显示顶部条幅提示
 
     try {
       // 保存到数据库前，移除临时的 style 属性
@@ -208,34 +190,14 @@ Page({
         wx.setNavigationBarTitle({ title: '编辑作业' });
       }
 
-      this.setData({ 
-        autoSaveStatus: 'saved',
-        hasUnsavedChanges: false,
-        lastSaveTime: new Date().toLocaleTimeString()
-      });
-
-      // 3秒后清除保存状态提示
-      setTimeout(() => {
-        this.setData({ autoSaveStatus: '' });
-      }, 3000);
+      this.setData({ hasUnsavedChanges: false });
 
     } catch (err) {
       console.error('自动保存失败:', err);
-      this.setData({ autoSaveStatus: 'failed' });
-      
-      // 如果是网络错误，稍后重试
+      // 网络失败10秒后重试
       if (this.isNetworkError(err)) {
-        setTimeout(() => {
-          if (this.data.hasUnsavedChanges && this.data.autoSaveEnabled) {
-            this.triggerAutoSave();
-          }
-        }, 10000); // 10秒后重试
+        setTimeout(() => { if (this.data.hasUnsavedChanges) this.triggerAutoSave(); }, 10000);
       }
-      
-      // 5秒后清除失败状态
-      setTimeout(() => {
-        this.setData({ autoSaveStatus: '' });
-      }, 5000);
     }
   },
 
@@ -263,50 +225,11 @@ Page({
            errorMsg.includes('网络');
   },
 
-  // 智能保存提示
-  showSaveHint() {
-    // 如果自动保存已开启，不显示提示
-    if (this.data.autoSaveEnabled) return;
-    
-    // 如果单词数量较多且有未保存更改，显示友好提示
-    if (this.data.wordListForHomework.length >= 10 && this.data.hasUnsavedChanges) {
-      // 防止频繁提示，使用节流
-      if (this.saveHintTimer) {
-        clearTimeout(this.saveHintTimer);
-      }
-      
-      this.saveHintTimer = setTimeout(() => {
-        if (this.data.hasUnsavedChanges && !this.data.autoSaveEnabled) {
-          wx.showToast({
-            title: '建议开启自动保存',
-            icon: 'none',
-            duration: 2000
-          });
-        }
-      }, 5000); // 5秒后提示
-    }
-  },
+  // 即时保存无需顶部提示
+  showSaveHint() {},
 
-  // 切换自动保存开关
-  toggleAutoSave(e) {
-    const newState = e.detail.value;
-    this.setData({ autoSaveEnabled: newState });
-    
-    if (newState) {
-      wx.showToast({ title: '已开启自动保存', icon: 'success' });
-      // 如果有未保存的更改，立即触发自动保存
-      if (this.data.hasUnsavedChanges) {
-        this.triggerAutoSave();
-      }
-    } else {
-      wx.showToast({ title: '已关闭自动保存', icon: 'none' });
-      // 清除定时器
-      if (this.autoSaveTimer) {
-        clearTimeout(this.autoSaveTimer);
-        this.autoSaveTimer = null;
-      }
-    }
-  },
+  // 不再提供开关
+  toggleAutoSave() {},
 
   onTitleInput: function(e) { 
     this.setData({ 
