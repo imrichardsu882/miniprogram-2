@@ -27,7 +27,38 @@ Page({
     avatarUrl: '',
     nickname: '',
     sign: '',
-    openid: ''
+    openid: '',
+
+    // 红点提示相关
+    hasLeaderboardUpdate: false,
+    hasTeacherUpdate: false,
+    hasUnreadUpdates: false,
+    unreadCount: 0,
+    
+    // 版本更新相关
+    updates: [
+      {
+        id: 1,
+        title: '新增智能发音功能',
+        description: '支持自动发音和发音重试机制，提升学习体验',
+        read: false,
+        timestamp: Date.now() - 2 * 24 * 60 * 60 * 1000 // 2天前
+      },
+      {
+        id: 2,
+        title: '优化答题交互体验',
+        description: '改进错误反馈机制，支持重试和继续功能',
+        read: false,
+        timestamp: Date.now() - 1 * 24 * 60 * 60 * 1000 // 1天前
+      },
+      {
+        id: 3,
+        title: '界面设计全面升级',
+        description: '采用现代化iOS/MIUI设计风格，提升视觉体验',
+        read: true,
+        timestamp: Date.now() - 12 * 60 * 60 * 1000 // 12小时前
+      }
+    ]
   },
 
   onLoad() {
@@ -36,6 +67,7 @@ Page({
     this.batchSetData = new BatchSetData(this);
     performanceMonitor.start('indexLoad');
     this.checkLoginState();
+    this.checkUpdateStatus();
   },
 
   async checkLoginState() {
@@ -381,59 +413,156 @@ Page({
 
   // 简化的头像显示处理：暂时禁用云头像，统一使用默认头像
   async handleAvatarDisplay(avatarUrl) {
-    // 临时解决方案：统一使用默认头像，避免云存储403错误
-    console.log('使用默认头像 (云头像暂时禁用)');
-    this.batchSetData.add({ 
-      'userInfo.avatarUrl': '/images/avatar.png',
-      avatarUrl: '/images/avatar.png'
+    try {
+      console.log('开始处理头像显示:', avatarUrl);
+      const tempFileURL = await wx.cloud.getTempFileURL({
+        fileList: [avatarUrl]
+      });
+      console.log('获取临时文件URL结果:', tempFileURL);
+      
+      if (tempFileURL.fileList && tempFileURL.fileList[0] && tempFileURL.fileList[0].tempFileURL) {
+        const tempUrl = tempFileURL.fileList[0].tempFileURL;
+        console.log('临时URL:', tempUrl);
+        
+        this.setData({
+          'userInfo.avatarUrl': tempUrl
+        });
+        console.log('头像URL更新完成');
+      }
+    } catch (error) {
+      console.error('处理头像显示失败:', error);
+      // 如果转换失败，使用默认头像
+      this.setData({
+        'userInfo.avatarUrl': '/images/avatar.png'
+      });
+    }
+  },
+
+  // 检查更新状态和红点提示
+  checkUpdateStatus() {
+    // 检查排行榜更新
+    this.checkLeaderboardUpdate();
+    // 检查教师功能更新
+    this.checkTeacherUpdate();
+    // 检查版本更新
+    this.checkVersionUpdates();
+  },
+
+  // 检查排行榜更新
+  checkLeaderboardUpdate() {
+    // 模拟检查排行榜是否有新数据
+    const lastVisit = wx.getStorageSync('lastLeaderboardVisit') || 0;
+    const now = Date.now();
+    const hasUpdate = (now - lastVisit) > 24 * 60 * 60 * 1000; // 24小时内有更新
+    
+    this.setData({
+      hasLeaderboardUpdate: hasUpdate
+    });
+  },
+
+  // 检查教师功能更新
+  checkTeacherUpdate() {
+    // 模拟检查教师功能是否有新内容
+    const lastVisit = wx.getStorageSync('lastTeacherVisit') || 0;
+    const now = Date.now();
+    const hasUpdate = (now - lastVisit) > 7 * 24 * 60 * 60 * 1000; // 7天内有更新
+    
+    this.setData({
+      hasTeacherUpdate: hasUpdate
+    });
+  },
+
+  // 检查版本更新
+  checkVersionUpdates() {
+    const updates = this.data.updates;
+    const hasUnread = updates.some(update => !update.read);
+    const unreadCount = updates.filter(update => !update.read).length;
+    
+    this.setData({
+      hasUnreadUpdates: hasUnread,
+      unreadCount: unreadCount
+    });
+  },
+
+  // 查看版本更新详情
+  viewUpdate(e) {
+    const updateId = e.currentTarget.dataset.id;
+    const updates = this.data.updates.map(update => {
+      if (update.id === updateId) {
+        return { ...update, read: true };
+      }
+      return update;
     });
     
-    /* 云头像处理代码暂时注释，等云环境配置完善后再启用
-    if (!avatarUrl) {
-      this.batchSetData.add({ 
-        'userInfo.avatarUrl': '/images/avatar.png',
-        avatarUrl: '/images/avatar.png'
+    this.setData({ updates });
+    this.checkVersionUpdates();
+    
+    // 显示更新详情
+    const update = updates.find(u => u.id === updateId);
+    if (update) {
+      wx.showModal({
+        title: update.title,
+        content: update.description,
+        showCancel: false,
+        confirmText: '知道了'
       });
-      return;
     }
+  },
 
-    if (!avatarUrl.startsWith('cloud://')) {
-      // 非云文件，直接使用
-      return;
-    }
-
-    try {
-      console.log('处理云头像:', avatarUrl);
-      
-      const res = await wx.cloud.getTempFileURL({
-        fileList: [avatarUrl],
-        timeout: 3000
-      });
-      
-      if (res && res.fileList && res.fileList.length > 0) {
-        const file = res.fileList[0];
-        if (file.status === 0 && file.tempFileURL) {
-          console.log('云头像转换成功:', file.tempFileURL);
-          this.batchSetData.add({ 
-            'userInfo.avatarUrl': file.tempFileURL,
-            avatarUrl: file.tempFileURL
-          });
-          return;
+  // 显示设置页面
+  showSettings() {
+    wx.showActionSheet({
+      itemList: ['清除缓存', '关于我们', '意见反馈'],
+      success: (res) => {
+        switch (res.tapIndex) {
+          case 0:
+            this.clearCache();
+            break;
+          case 1:
+            this.showAbout();
+            break;
+          case 2:
+            this.showFeedback();
+            break;
         }
       }
-      
-      this.batchSetData.add({ 
-        'userInfo.avatarUrl': '/images/avatar.png',
-        avatarUrl: '/images/avatar.png'
-      });
-      
-    } catch (error) {
-      console.error('云头像转换异常:', error);
-      this.batchSetData.add({ 
-        'userInfo.avatarUrl': '/images/avatar.png',
-        avatarUrl: '/images/avatar.png'
-      });
-    }
-    */
+    });
+  },
+
+  // 清除缓存
+  clearCache() {
+    wx.showModal({
+      title: '清除缓存',
+      content: '确定要清除所有缓存数据吗？',
+      success: (res) => {
+        if (res.confirm) {
+          wx.clearStorageSync();
+          wx.showToast({
+            title: '缓存已清除',
+            icon: 'success'
+          });
+        }
+      }
+    });
+  },
+
+  // 显示关于页面
+  showAbout() {
+    wx.showModal({
+      title: '关于三通英语助手',
+      content: '版本：1.0.0\n\n一个专为师生设计的智能英语学习工具，让学习更高效，让进步更可见。',
+      showCancel: false,
+      confirmText: '知道了'
+    });
+  },
+
+  // 显示反馈页面
+  showFeedback() {
+    wx.showModal({
+      title: '意见反馈',
+      content: '如有问题或建议，请联系开发团队。\n\n邮箱：feedback@example.com',
+      showCancel: false,
+      confirmText: '知道了'
+    });
   }
 });

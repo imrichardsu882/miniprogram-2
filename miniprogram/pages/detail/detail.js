@@ -39,6 +39,8 @@ Page({
     showCelebration: false,
     canPrevReview: false,
     canNextReview: false,
+    // 箭头使能：右箭头=仅在当前题已学(displayLearned)时可用
+    canNextArrow: false,
 
     // 新增：错误反馈和自动跳转相关
     showErrorFeedback: false,
@@ -56,7 +58,9 @@ Page({
     errorAudio.src = '/audios/error-05-199276.mp3';
 
     // 统一音频状态管理（空闲/播放中/已结束）
-    this._audioState = 'idle';
+    this._audioState = 'idle'; // idle | loading | playing | ended | error
+    this._audioToken = 0;      // 防并发令牌
+    this._audioStartTs = 0;    // 最近一次启动时间
     this._visualLock = false; // 交互锁
     // 采用已有提示音作轻点音效，降低音量
     tapAudio.src = '/audios/correct-156911.mp3';
@@ -120,14 +124,15 @@ Page({
     }, () => {
       // 进入新题，释放交互锁
       this._visualLock = false;
-      // 进题自动发音
-      this.playWordAudio(this.data.currentQuestion.word);
+      // 进题自动发音：300ms 延迟触发 + 自动重试
+      setTimeout(() => this.safeAutoSpeak(this.data.currentQuestion.word), 300);
       if (this.data.currentQuestion.type === 'sp' && this.data.useTileSpelling) {
         this.setupSpellingTiles(this.data.currentQuestion.answer);
       } else {
         this.setData({ letterBank: [], chosenLetters: [] });
       }
       this.updateReviewAvailability();
+      this.updateArrowAvailability();
     });
   },
 
@@ -176,51 +181,136 @@ Page({
   },
 
   playWordAudio(eventOrWord) {
-    let wordToPlay = '';
-    if (typeof eventOrWord === 'string') wordToPlay = eventOrWord;
-    else if (eventOrWord && eventOrWord.currentTarget && eventOrWord.currentTarget.dataset) {
-      wordToPlay = eventOrWord.currentTarget.dataset.word;
-    }
-    if (!wordToPlay) return;
-
-    // 若已有发音在播，默认不打断（遵循不中断策略）
+    // 若已有发音在播，默认不中断；
+    // 但若已播超过1.2s仍处于playing，认为异常，尝试中断并重播。
     if (this._audioState === 'playing') {
-      console.log('音频播放中，忽略新的播放请求');
-      return;
+      const now = Date.now();
+      if (this._audioStartTs && now - this._audioStartTs > 1200) {
+        try { wordAudio.stop(); } catch(_) {}
+        this._audioState = 'idle';
+      } else {
+        console.log('音频播放中，忽略新的播放请求');
+        return;
+      }
     }
 
+    const word = typeof eventOrWord === 'string' ? eventOrWord : eventOrWord.currentTarget.dataset.word;
+    if (!word) return;
+
+    const token = ++this._audioToken; // 记录本次请求令牌
+    let idx = 0;
     const urls = [
-      `https://dict.youdao.com/dictvoice?type=0&audio=${encodeURIComponent(wordToPlay)}`,
-      `https://dict.youdao.com/dictvoice?type=1&audio=${encodeURIComponent(wordToPlay)}`
+      `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&type=2`,
+      `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&type=0`
     ];
 
-    let idx = 0;
     const tryPlay = () => {
       try { wordAudio.stop(); } catch(_) {}
-      this._audioState = 'playing';
-
-      wordAudio.offEnded && wordAudio.offEnded();
-      wordAudio.offError && wordAudio.offError();
-      wordAudio.offCanplay && wordAudio.offCanplay();
+      this._audioState = 'loading';
 
       wordAudio.src = urls[idx];
 
       wordAudio.onEnded(() => {
+        if (token !== this._audioToken) return; // 过期
         this._audioState = 'ended';
       });
       wordAudio.onError((error) => {
+        if (token !== this._audioToken) return;
         console.warn('音频错误', error);
-        if (idx < urls.length - 1) { idx += 1; tryPlay(); return; }
-        this._audioState = 'ended';
+        if (idx < urls.length - 1) { 
+          idx += 1; 
+          tryPlay(); 
+          return; 
+        }
+        // 所有有道接口都失败，使用TTS降级
+        this._audioState = 'error';
+        this.fallbackToTTS(word);
       });
       wordAudio.onCanplay(() => { /* 可播放 */ });
 
-      try { wordAudio.play(); } catch (e) { 
-        if (idx < urls.length - 1) { idx += 1; tryPlay(); return; }
-        this._audioState = 'ended';
+      try { 
+        const res = wordAudio.play();
+        this._audioStartTs = Date.now();
+        this._audioState = 'playing';
+      } catch (e) { 
+        if (idx < urls.length - 1) { 
+          idx += 1; 
+          tryPlay(); 
+          return; 
+        }
+        this._audioState = 'error';
+        this.fallbackToTTS(word);
       }
     };
     tryPlay();
+  },
+
+  // 音频降级：使用微信TTS
+  fallbackToTTS(word) {
+    console.log('使用TTS降级播放:', word);
+    try {
+      // 使用微信同层音频播放TTS
+      const innerAudioContext = wx.createInnerAudioContext();
+      innerAudioContext.src = `https://tts.baidu.com/text2audio?lan=en&ie=UTF-8&spd=5&text=${encodeURIComponent(word)}`;
+      
+      innerAudioContext.onPlay(() => {
+        console.log('TTS开始播放');
+        this._audioState = 'playing';
+        this._audioStartTs = Date.now();
+      });
+      
+      innerAudioContext.onEnded(() => {
+        console.log('TTS播放结束');
+        this._audioState = 'ended';
+        innerAudioContext.destroy();
+      });
+      
+      innerAudioContext.onError((error) => {
+        console.warn('TTS播放失败:', error);
+        this._audioState = 'error';
+        innerAudioContext.destroy();
+        // 最后降级：显示提示
+        wx.showToast({
+          title: '发音功能暂时不可用',
+          icon: 'none',
+          duration: 2000
+        });
+      });
+      
+      innerAudioContext.play();
+      
+    } catch (error) {
+      console.error('TTS降级失败:', error);
+      this._audioState = 'error';
+      wx.showToast({
+        title: '发音功能暂时不可用',
+        icon: 'none',
+        duration: 2000
+      });
+    }
+  },
+
+  // 自动发音：带缓存检测与重试
+  safeAutoSpeak(word) {
+    if (!word) return;
+    let attempts = 0;
+    const tryOnce = () => {
+      attempts += 1;
+      const tokenBefore = this._audioToken;
+      this.playWordAudio(word);
+      // 700ms 后检查是否进入 playing
+      setTimeout(() => {
+        const notStarted = (this._audioState !== 'playing') || (tokenBefore === this._audioToken);
+        if (notStarted && attempts < 2) {
+          console.log('音频未开始，重试第', attempts + 1, '次');
+          tryOnce();
+        } else if (notStarted && attempts >= 2) {
+          wx.showToast({ title: '音频加载失败，请检查网络', icon: 'none' });
+          this._audioState = 'error';
+        }
+      }, 700);
+    };
+    tryOnce();
   },
 
   // ===== 拼写题：字母卡片 =====
@@ -367,11 +457,14 @@ Page({
 
     const afterFlow = async () => {
       if (isCorrect) {
-        // 答对：等视觉反馈与音频完成后再跳
+        // 答对：等待最短0.8s或音频结束（二者先到）
         wx.vibrateShort({ type: 'medium' });
-        await this.waitVisualAndAudio(800, 1600);
+        await this.waitVisualOrAudio(800); // 新逻辑：取先到
         this.handleCorrectAnswer();
         this._visualLock = false; // 切题流程内部会重新生成题并释放锁
+        // 标记当前题为已学，更新箭头
+        this._markCurrentLearned(true);
+        this.updateArrowAvailability();
       } else {
         // 答错：显示覆盖层，并释放锁（由覆盖层按钮再加锁）
         wx.vibrateShort({ type: 'heavy' });
@@ -429,10 +522,8 @@ Page({
   // 处理正确答案：自动跳转下一题（等待逻辑在外部完成）
   handleCorrectAnswer() {
     console.log('答对了，准备自动跳转下一题');
-    this.setData({ isAutoProgressing: true });
-    // 短暂停顿以显示提示，然后立刻进入下一题
+    // 仅保留音效，300ms 后快速切题
     this.data.autoProgressTimer = setTimeout(() => {
-      this.setData({ isAutoProgressing: false });
       this.nextWord();
     }, 300);
   },
@@ -445,13 +536,8 @@ Page({
       showErrorFeedback: true,
       correctAnswerText: correctAnswer,
       retryButtonDisabled: false,
-      continueButtonDisabled: true // 初始禁用继续按钮
+      continueButtonDisabled: false // 立即启用继续按钮
     });
-
-    // 0.8秒后启用继续按钮，引导用户先看反馈
-    setTimeout(() => {
-      this.setData({ continueButtonDisabled: false });
-    }, 800);
   },
 
   // 再试一次
@@ -477,6 +563,9 @@ Page({
       'currentQuestion.options': resetOptions,
       currentQuestionRetried: true
     });
+    // 覆盖层出现后不自动消失，重试时更新箭头（未学状态）
+    this._markCurrentLearned(false);
+    this.updateArrowAvailability();
 
     // 将错选项置灰
     setTimeout(() => {
@@ -497,7 +586,7 @@ Page({
     this._visualLock = true;
     console.log('用户选择继续下一题');
     this.setData({ showErrorFeedback: false });
-    await this.waitVisualAndAudio(800, 1600);
+    // 用户主动继续：不再强制等待，直接切题
     this.nextWord();
     this._visualLock = false;
   },
@@ -836,6 +925,20 @@ Page({
     });
   },
 
+  // 新：等待最短时长或音频结束（二者取先到）
+  waitVisualOrAudio(minWaitMs = 800) {
+    return new Promise(resolve => {
+      const start = Date.now();
+      const tick = () => {
+        const elapsed = Date.now() - start;
+        const audioDone = this._audioState === 'ended' || this._audioState === 'idle';
+        if (elapsed >= minWaitMs || audioDone) { resolve(); return; }
+        setTimeout(tick, 40);
+      };
+      tick();
+    });
+  },
+
   nextWord() {
     // 清除自动跳转定时器
     if (this.data.autoProgressTimer) {
@@ -861,14 +964,33 @@ Page({
     });
   },
 
+  // 箭头可用性：右箭头仅在当前题displayLearned为true时开放
+  updateArrowAvailability() {
+    const learned = this._getDisplayLearned(this.data.currentWordIndex);
+    this.setData({ canNextArrow: !!learned });
+  },
+
+  // 综合“本次会话是否已答对+历史是否已学”
+  _getDisplayLearned(index) {
+    const sessionLearned = this._sessionLearned && this._sessionLearned[index];
+    const serverLearned = this._serverLearned && this._serverLearned[index];
+    return !!(sessionLearned || serverLearned);
+  },
+
+  // 标记本次会话学习状态
+  _markCurrentLearned(val) {
+    if (!this._sessionLearned) this._sessionLearned = {};
+    this._sessionLearned[this.data.currentWordIndex] = !!val;
+  },
+
   onPrevTap() { if (this.data.canPrevReview) this.prevWordReview(); },
   onNextTap() {
-    // 仅允许在已完成范围内前进回看
-    const answeredMax = (this._snapshots ? this._snapshots.length : 0) - 1;
-    const next = Math.min(this.data.currentWordIndex + 1, answeredMax);
-    if (next > this.data.currentWordIndex) {
-      this.setData({ currentWordIndex: next }, () => this.showSnapshot(next));
-    }
+    // 右箭头：仅当displayLearned为true时允许前进一步
+    if (!this.data.canNextArrow) return;
+    if (this._visualLock) return;
+    this._visualLock = true;
+    this.nextWord();
+    this._visualLock = false;
   },
 
   // 轻滑手势：左滑下一题（回看），右滑上一题（回看）

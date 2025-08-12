@@ -27,8 +27,8 @@
       <!-- 取消顶部舞台展示，改为贴近手指区展示（见下方 interaction-zone 内） -->
     </block>
     <!-- 回看导航：题目卡片两侧，几乎透明 -->
-    <view class="review-nav left {{canPrevReview ? '' : 'disabled'}}" bindtap="onPrevTap">‹</view>
-    <view class="review-nav right {{canNextReview ? '' : 'disabled'}}" bindtap="onNextTap">›</view>
+    <view class="review-nav left {{currentWordIndex>0 ? '' : 'disabled'}}" bindtap="onPrevTap">‹</view>
+    <view class="review-nav right {{canNextArrow ? '' : 'disabled'}}" bindtap="onNextTap">›</view>
   </view>
 
 
@@ -67,10 +67,6 @@
           </view>
         </view>
 
-        <!-- 自动跳转提示（覆盖，不改变布局） -->
-        <view class="next-placeholder" wx:if="{{isAutoProgressing}}">
-          <view class="auto-progress-text">答对了！ 即将进入下一题…</view>
-        </view>
       </view>
     </block>
 

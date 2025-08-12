@@ -1324,25 +1324,7 @@ page {
 }
 
 /* 自动跳转下一题的占位样式 */
-.next-placeholder {
-  position: absolute; /* 覆盖在选项容器内，不占位 */
-  left: 12rpx;
-  right: 12rpx;
-  bottom: 12rpx;
-  background: rgba(16, 185, 129, 0.95);
-  color: white;
-  padding: var(--spacing-2xl);
-  text-align: center;
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  animation: slideUpFromBottom 0.3s ease-out;
-  z-index: 200;
-}
-
-.auto-progress-text {
-  font-size: var(--font-size-xl);
-  font-weight: 600;
-  animation: pulse 1s ease-in-out infinite;
-}
+/* 移除答对提示覆盖层样式（不再展示） */
 
 /* 动画定义 */
 @keyframes slideUpFromBottom {

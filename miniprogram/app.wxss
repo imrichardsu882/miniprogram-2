@@ -1,13 +1,23 @@
 /* 现代化设计系统 */
 page {
-  --primary-color: #6366f1;
-  --primary-light: #818cf8;
-  --primary-dark: #4f46e5;
-  --secondary-color: #f59e0b;
-  --success-color: #10b981;
-  --error-color: #ef4444;
-  --warning-color: #f59e0b;
-  --info-color: #3b82f6;
+  /* 品牌主色与设计 Tokens（温暖、现代） */
+  --brand-warm: #FFD06B; /* 背景基底/插画主色 */
+  --brand-warm-alt: #F7C948;
+  --cta-start: #05A77A; /* CTA 渐变起点 */
+  --cta-end: #00B386;   /* CTA 渐变终点 */
+  --cta-solid: #06A27A;
+  --accent-blue: #2D9CDB;
+  --accent-purple: #7C6CFF;
+
+  /* 保留一份旧变量做向后兼容 */
+  --primary-color: var(--cta-start);
+  --primary-light: #33C19C;
+  --primary-dark: var(--cta-end);
+  --secondary-color: var(--accent-blue);
+  --success-color: #00B386;
+  --error-color: #EF4D4D;
+  --warning-color: #F7C948;
+  --info-color: var(--accent-blue);
   
   --gray-50: #f9fafb;
   --gray-100: #f3f4f6;
@@ -52,9 +62,9 @@ page {
   --transition-normal: 0.3s ease;
   --transition-slow: 0.5s ease;
   
-  background-color: var(--gray-50);
+  background-color: #FBFBFD; /* 统一背景 */
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  color: var(--gray-900);
+  color: #0A0A0A; /* 主标题色 */
   line-height: 1.5;
 }
 
@@ -73,7 +83,7 @@ page {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  background: linear-gradient(135deg, var(--cta-start), var(--cta-end));
   color: white;
   box-shadow: var(--shadow-md);
 }
