@@ -1,4 +1,7 @@
 {
+  "navigationBarTitleText": "",
+  "navigationBarBackgroundColor": "#ffffff",
+  "navigationBarTextStyle": "black",
   "usingComponents": {
     "cloud-tip-modal": "/components/cloudTipModal/index"
   }
