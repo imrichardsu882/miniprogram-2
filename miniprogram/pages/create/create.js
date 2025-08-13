@@ -28,10 +28,7 @@ Page({
     
     if (options.id) {
       this.setData({ isEditMode: true, homeworkId: options.id });
-      wx.setNavigationBarTitle({ title: '编辑作业' });
       this.loadHomeworkForEdit(options.id);
-    } else {
-      wx.setNavigationBarTitle({ title: '创建新作业' });
     }
   },
 

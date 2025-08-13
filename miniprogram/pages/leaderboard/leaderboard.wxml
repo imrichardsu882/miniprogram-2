@@ -1,6 +1,5 @@
 <view class="page-container">
   <view class="header">
-    <view class="title">群英榜</view>
     <view class="subtitle">{{dimensionConfig[currentDimension].subtitle}}</view>
     
     <!-- 维度切换 -->

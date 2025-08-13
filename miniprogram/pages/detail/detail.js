@@ -504,6 +504,17 @@ Page({
         this.triggerCelebrationEffects();
       }, 300);
       
+      // 拼写正确时自动跳转到下一题（与4选1模式保持一致）
+      const afterFlow = async () => {
+        // 答对：等待最短0.8s或音频结束（二者先到）
+        await this.waitVisualOrAudio(800); // 与4选1模式相同的延迟逻辑
+        this.handleCorrectAnswer();
+        // 标记当前题为已学，更新箭头
+        this._markCurrentLearned(true);
+        this.updateArrowAvailability();
+      };
+      afterFlow();
+      
     } else {
       this.setData({
         spellingFeedbackClass: 'incorrect', spStageClass: 'stage-incorrect',
@@ -954,6 +965,13 @@ Page({
     }
   },
 
+  // 返回主页（完成页面使用）
+  goBack() {
+    wx.reLaunch({
+      url: '/pages/index/index'
+    });
+  },
+
   // 计算回看可用性（只能在已作答范围内自由回看）
   updateReviewAvailability() {
     const answeredMax = (this._snapshots ? this._snapshots.length : 0) - 1; // 已完成最大索引
@@ -1095,15 +1113,6 @@ Page({
       currentWordIndex: 0, correctCount: 0, isFinished: false, score: '0%',
       summaryList: [], mistakes: [], progress: 0, letterBank: [], chosenLetters: [], chosenShake: false
     }, () => this.generateQuestion());
-  },
-
-  goBack() { 
-    // 如果是结果页面，回到主页；否则返回上一页
-    if (this.data.isFinished) {
-      wx.reLaunch({ url: '/pages/index/index' });
-    } else {
-      wx.navigateBack();
-    }
   },
 
   shuffle(array) {

@@ -1,5 +1,7 @@
 {
-  "navigationStyle": "custom",
+  "navigationBarTitleText": "三通英语助手",
+  "navigationBarBackgroundColor": "#ffffff",
+  "navigationBarTextStyle": "black",
   "usingComponents": {
     "cloud-tip-modal": "/components/cloudTipModal/index"
   }

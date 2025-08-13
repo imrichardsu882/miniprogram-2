@@ -1,3 +1,6 @@
 {
+  "navigationBarTitleText": "群英榜",
+  "navigationBarBackgroundColor": "#ffffff",
+  "navigationBarTextStyle": "black",
   "usingComponents": {}
 }

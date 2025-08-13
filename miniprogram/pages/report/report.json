@@ -1,4 +1,6 @@
 {
   "navigationBarTitleText": "学情报告",
+  "navigationBarBackgroundColor": "#ffffff",
+  "navigationBarTextStyle": "black",
   "usingComponents": {}
 }

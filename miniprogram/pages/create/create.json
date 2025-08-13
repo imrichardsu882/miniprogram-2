@@ -1,5 +1,6 @@
 {
-  "navigationStyle": "default",
-  "navigationBarTitleText": "编辑作业",
+  "navigationBarTitleText": "创建新作业",
+  "navigationBarBackgroundColor": "#ffffff",
+  "navigationBarTextStyle": "black",
   "usingComponents": {}
 }

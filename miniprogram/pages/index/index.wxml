@@ -20,88 +20,109 @@
     
     <view class="auth-content">
       <view class="auth-header">
-        <view class="app-logo">
-          <text class="logo-icon">📚</text>
-        </view>
         <view class="auth-title">
           <text class="main-title">三通英语助手</text>
-          <text class="sub-title">让学习更智能，让进步更可见</text>
         </view>
       </view>
 
       <view class="auth-actions">
         <button class="auth-button primary" bindtap="handleAuth" hover-class="button-hover">
-          <text class="button-icon">🔐</text>
+          <text class="button-icon">📱</text>
           <text class="button-text">微信授权登录</text>
         </button>
         
         <button class="auth-button secondary" bindtap="enterAsGuest" hover-class="button-hover">
-          <text class="button-icon">👀</text>
+          <text class="button-icon">🎯</text>
           <text class="button-text">体验模式</text>
         </button>
       </view>
+    </view>
 
-      <view class="auth-footer">
-        <text class="footer-text">内部教学工具 · 师生专用</text>
-      </view>
+    <!-- 底部声明 - 简化版本 -->
+    <view class="footer-container">
+      <text class="footer-text">内部教学工具 · 师生专用</text>
     </view>
   </view>
 
-  <!-- 移除个人资料编辑界面，简化为微信授权直接进入 -->
-
-  <!-- 身份选择页面 -->
-  <view wx:if="{{pageState === 'role'}}" class="role-container">
-    <view class="role-background">
-      <view class="role-gradient"></view>
-      <view class="role-pattern"></view>
+  <!-- 重新设计的主页 -->
+  <view wx:if="{{pageState === 'role'}}" class="home-container">
+    <!-- 模块1：顶部导航区（简化） -->
+    <view class="top-nav">
+      <view class="nav-left">
+        <text class="app-name">三通英语助手</text>
+      </view>
     </view>
-    
-    <view class="role-content">
-      <!-- 统一的个人中心区域 -->
-      <view class="unified-profile-section">
-        <view class="profile-header">
-          <view class="profile-avatar" bindtap="editProfile">
-            <image class="avatar-image" src="{{userInfo.avatarUrl || '/images/avatar.png'}}" mode="aspectFill" />
-            <view class="avatar-edit">
-              <text class="edit-icon">✏️</text>
-            </view>
+
+    <!-- 模块2：辅助功能区（排行榜） -->
+    <view class="secondary-actions-section">
+      <view class="action-grid">
+        <view class="action-card leaderboard-card" hover-class="card-hover" bindtap="goLeaderboard">
+          <view class="card-icon">
+            <text class="icon-trophy">🏆</text>
           </view>
-          <view class="profile-info" bindtap="editProfile">
-            <text class="profile-name">{{userInfo.nickName || '学习者'}}</text>
-          </view>
+          <text class="card-text">排行榜</text>
         </view>
+        
+        <view class="action-card teacher-card" hover-class="card-hover" bindtap="onRoleSelect" data-role="teacher">
+          <view class="card-icon">
+            <text class="icon-teacher">👨‍🏫</text>
+          </view>
+          <text class="card-text">教师功能</text>
+        </view>
+      </view>
+    </view>
 
-        <!-- 学习统计模块移除（按你的意见不再显示） -->
+    <!-- 模块3：核心转化区（开始练习） -->
+    <view class="primary-action-section">
+      <view class="primary-action-card" hover-class="primary-card-hover" bindtap="onRoleSelect" data-role="student">
+        <view class="card-badge" wx:if="{{hasPracticeUpdate}}">
+          <view class="badge-dot"></view>
+        </view>
+        <view class="action-icon">
+          <text class="icon-book">📖</text>
+        </view>
+        <view class="action-content">
+          <text class="action-title">开始练习</text>
+          <text class="action-subtitle">每天10分钟，轻松进步</text>
+        </view>
+        <view class="action-arrow">
+          <text class="arrow-icon">→</text>
+        </view>
+      </view>
+    </view>
 
-        <!-- 学习入口区域（优先显示，放在更靠前的位置） -->
-        <view class="learning-section">
-        <view class="learning-cards">
-          <view class="learning-card main-card" hover-class="card-hover" bindtap="onRoleSelect" data-role="student">
-            <view class="card-icon">
-              <text class="icon-text">📚</text>
+    <!-- 模块4：版本更新区（垂直滚动） -->
+    <view class="updates-section" wx:if="{{updates.length > 0}}">
+      <view class="section-header">
+        <text class="section-title">版本更新</text>
+        <view class="unread-indicator" wx:if="{{hasUnreadUpdates}}">
+          <text class="unread-count">{{unreadCount}}</text>
+        </view>
+      </view>
+      
+      <scroll-view class="updates-scroll" scroll-y="true">
+        <view class="updates-container">
+          <view 
+            wx:for="{{updates}}" 
+            wx:key="id" 
+            class="update-card {{item.read ? 'read' : 'unread'}}" 
+            hover-class="update-card-hover"
+            bindtap="viewUpdate"
+            data-update="{{item}}"
+          >
+            <view class="update-badge" wx:if="{{!item.read}}">
+              <view class="badge-dot"></view>
             </view>
-            <view class="card-content">
-              <text class="card-title">开始练习</text>
+            <view class="update-content">
+              <text class="update-title">{{item.title}}</text>
+              <text class="update-description">{{item.description}}</text>
             </view>
-            <view class="card-arrow">
+            <view class="update-arrow">
               <text class="arrow-icon">→</text>
             </view>
           </view>
         </view>
-      </view>
-
-        <!-- 快捷操作 -->
-        <view class="quick-actions">
-          <button class="quick-btn leaderboard-btn" bindtap="goLeaderboard">
-            <text class="quick-icon">🏆</text>
-            <text class="quick-text">排行榜</text>
-          </button>
-          <button class="quick-btn teacher-btn" bindtap="onRoleSelect" data-role="teacher">
-            <text class="quick-icon">👨‍🏫</text>
-            <text class="quick-text">教师功能</text>
-          </button>
-        </view>
-      </view>
+      </scroll-view>
     </view>
   </view>
 

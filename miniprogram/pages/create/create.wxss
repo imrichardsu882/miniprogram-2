@@ -2,7 +2,6 @@
 page { 
   background-color: #f2f2f7 !important; 
   background-image: none !important; /* 清除任何背景图片 */
-  padding-top: env(safe-area-inset-top); /* 适配刘海屏和状态栏 */
   width: 100% !important;
   height: 100% !important;
   overflow-x: hidden; /* 防止水平滚动暴露底层 */
@@ -10,19 +9,6 @@ page {
 }
 
 /* 页面级全覆盖背景层 */
-page::before {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: #f2f2f7;
-  z-index: -10;
-  pointer-events: none;
-}
-
-/* 第一层：页面级背景遮罩 */
 .page-background {
   position: fixed;
   top: 0;
@@ -36,7 +22,6 @@ page::before {
 /* 第二层：容器背景 */
 .page-container {
   padding: 32rpx;
-  padding-top: 80rpx; /* 增加顶部边距，确保标题完全可见 */
   padding-bottom: 32rpx; /* 移除悬浮按钮空间 */
   min-height: 100vh; /* 确保完全覆盖 */
   height: auto;

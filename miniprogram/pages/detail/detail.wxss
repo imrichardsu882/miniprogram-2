@@ -63,8 +63,11 @@ page {
 .page-container {
   min-height: 100vh;
   padding: var(--spacing-xl);
-  box-sizing: border-box;
   padding-bottom: calc(100rpx + var(--spacing-xl) * 2); /* 为固定的主要操作按钮区域留出空间 */
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(135deg, var(--gray-50) 0%, white 100%);
 }
 
 .header {
@@ -883,12 +886,15 @@ page {
   background: linear-gradient(135deg, var(--gray-50) 0%, white 100%);
   padding: var(--spacing-xl);
   box-sizing: border-box;
-  padding-bottom: 200rpx;
+  padding-bottom: 160rpx; /* 减少底部padding，为概览模块留出更多空间 */
+  display: flex;
+  flex-direction: column;
 }
 
 .finish-header {
   text-align: center;
-  margin-bottom: var(--spacing-2xl);
+  margin-bottom: var(--spacing-xl);
+  flex-shrink: 0;
 }
 
 .finish-title {
@@ -906,7 +912,7 @@ page {
 .finish-score-card {
   width: 300rpx;
   height: 300rpx;
-  margin: var(--spacing-2xl) auto;
+  margin: var(--spacing-xl) auto;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
   box-shadow: var(--shadow-xl);
@@ -916,6 +922,7 @@ page {
   align-items: center;
   position: relative;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .finish-score-card::before {
@@ -962,6 +969,10 @@ page {
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
   margin-bottom: var(--spacing-lg);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .summary-list-title {
@@ -970,10 +981,13 @@ page {
   color: var(--gray-700);
   padding: var(--spacing-lg);
   border-bottom: 2rpx solid var(--gray-100);
+  flex-shrink: 0;
 }
 
 .summary-list {
   padding: var(--spacing-lg);
+  flex: 1;
+  min-height: 0;
 }
 
 .summary-item {
@@ -1067,11 +1081,12 @@ page {
   left: 0;
   right: 0;
   background: white;
-  padding: var(--spacing-lg) var(--spacing-xl);
+  padding: var(--spacing-md) var(--spacing-xl);
   box-shadow: var(--shadow-xl);
   display: flex;
   gap: var(--spacing-md);
   z-index: 1000;
+  flex-shrink: 0;
 }
 
 .action-btn {
@@ -1294,6 +1309,9 @@ page {
   border: none;
   box-shadow: 0 6rpx 16rpx rgba(16, 185, 129, 0.3);
   transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .retry-btn:disabled {
@@ -1314,6 +1332,9 @@ page {
   border: none;
   box-shadow: 0 6rpx 16rpx rgba(107, 114, 128, 0.3);
   transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .continue-btn-error:disabled {
@@ -1352,6 +1373,8 @@ page {
   padding: 20rpx 20rpx 12rpx;
   box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.06);
   margin-bottom: 16rpx;
+  /* 调整位置，为字母选择区域留出更多空间 */
+  margin-bottom: 32rpx;
 }
 .sp-chosen-letters {
   min-height: 64rpx;
@@ -1403,19 +1426,26 @@ page {
   grid-template-columns: repeat(6, 1fr);
   gap: 16rpx;
   margin-bottom: 12rpx;
+  /* 调整字母选择区域位置，使其更便于点击 */
+  margin-top: 40rpx;
+  padding: 20rpx;
+  background: rgba(249, 250, 251, 0.8);
+  border-radius: 20rpx;
 }
 .sp-tile {
-  height: 88rpx;
+  height: 96rpx; /* 增加高度，便于点击 */
   border-radius: 16rpx;
   background: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40rpx;
+  font-size: 44rpx; /* 增加字体大小 */
   font-weight: 700;
   color: #111827;
   box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.06);
   border: 2rpx solid transparent;
+  /* 增加触摸反馈 */
+  transition: all 0.2s ease;
 }
 .sp-tile:active {
   transform: scale(0.98);

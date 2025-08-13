@@ -115,12 +115,12 @@
         </view>
       </view>
 
-      <!-- 主要按钮与字母区共位：未提交显示“确认”，提交后替换为“继续” -->
+      <!-- 主要按钮与字母区共位：未提交显示"确认"，提交后替换为"继续" -->
       <button wx:if="{{!isAnswered}}"
               class="sp-submit-btn {{chosenLetters.length>0 ? 'active' : ''}}"
               bindtap="onTileSpellingSubmit"
               disabled="{{chosenLetters.length===0}}">确认</button>
-      <button wx:elif="{{isAnswered}}"
+      <button wx:elif="{{isAnswered && spellingDiff}}"
               class="sp-submit-btn continue"
               bindtap="nextWord">继续</button>
     </block>
@@ -155,7 +155,7 @@
 
   <view class="summary-scroll-area">
     <view class="summary-list-title">本次答题概览</view>
-    <scroll-view scroll-y class="summary-list" style="max-height: 600rpx;">
+    <scroll-view scroll-y class="summary-list" style="height: calc(100vh - 600rpx);">
       <view wx:for="{{summaryList}}" wx:key="index" class="summary-item">
         <view class="summary-word-info">
           <view class="summary-word">{{item.word}}</view>

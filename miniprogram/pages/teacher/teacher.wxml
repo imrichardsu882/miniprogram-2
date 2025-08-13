@@ -1,8 +1,17 @@
-<view class="container">
-  <view class="header">
-    <text class="page-title">{{isPreviewMode ? '学生模式预览' : '我的课程'}}</text>
+<!-- 自定义导航栏 -->
+<view class="custom-navbar">
+  <view class="navbar-content">
+    <view class="navbar-left" bindtap="goBack">
+      <text class="back-icon">‹</text>
+    </view>
+    <view class="navbar-title">
+      <text class="title-text">{{isPreviewMode ? '学生模式预览' : '我的课程'}}</text>
+    </view>
+    <view class="navbar-right"></view>
   </view>
+</view>
 
+<view class="container">
   <view class="list-title">
     {{isPreviewMode ? '请选择要体验的课程' : '课程列表'}}
   </view>

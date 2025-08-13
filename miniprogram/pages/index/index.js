@@ -29,9 +29,8 @@ Page({
     sign: '',
     openid: '',
 
-    // 红点提示相关
-    hasLeaderboardUpdate: false,
-    hasTeacherUpdate: false,
+    // 红点提示相关（只保留开始练习和版本更新）
+    hasPracticeUpdate: false,
     hasUnreadUpdates: false,
     unreadCount: 0,
     
@@ -197,6 +196,11 @@ Page({
   async handleAuth() {
     wx.showLoading({ title: '正在认证...' });
     try {
+      // 获取微信用户信息
+      const userProfileRes = await wx.getUserProfile({
+        desc: '用于完善用户资料'
+      });
+      
       const cloudRes = await wx.cloud.callFunction({ name: 'login' });
       
       if (!cloudRes.result || !cloudRes.result.openid) {
@@ -204,22 +208,39 @@ Page({
       }
       
       const openid = cloudRes.result.openid;
-      console.log('获取到的openid:', openid);
+      const { nickName, avatarUrl } = userProfileRes.userInfo;
+      console.log('获取到的用户信息:', { openid, nickName, avatarUrl });
       
       const getRes = await usersCollection.where({ _openid: openid }).limit(1).get();
 
       if (getRes.data.length > 0) {
+        // 更新现有用户信息
         const userInfo = getRes.data[0];
-        wx.setStorageSync('userInfo', userInfo);
-        app.globalData.userInfo = userInfo;
-        this.setData({ userInfo, pageState: 'role' });
-        console.log('用户认证成功:', userInfo.nickName);
+        const updatedUserInfo = {
+          ...userInfo,
+          nickName: nickName || userInfo.nickName,
+          avatarUrl: avatarUrl || userInfo.avatarUrl,
+          updateTime: db.serverDate()
+        };
+        
+        await usersCollection.doc(userInfo._id).update({
+          data: {
+            nickName: updatedUserInfo.nickName,
+            avatarUrl: updatedUserInfo.avatarUrl,
+            updateTime: updatedUserInfo.updateTime
+          }
+        });
+        
+        wx.setStorageSync('userInfo', updatedUserInfo);
+        app.globalData.userInfo = updatedUserInfo;
+        this.setData({ userInfo: updatedUserInfo, pageState: 'role' });
+        console.log('用户信息更新成功:', updatedUserInfo.nickName);
       } else {
-        // 新用户直接使用微信信息创建档案
+        // 新用户创建档案
         const userInfo = {
           _openid: openid,
-          nickName: 'WeChat用户', // 默认昵称
-          avatarUrl: '/images/avatar.png', // 默认头像
+          nickName: nickName || 'WeChat用户',
+          avatarUrl: avatarUrl || '/images/avatar.png',
           createTime: db.serverDate()
         };
         
@@ -350,7 +371,11 @@ Page({
       } else {
         this.setData({ showPasswordModal: true, passwordInput: '' });
       }
-    } else {
+    } else if (role === 'student') {
+      // 记录开始练习访问时间，清除红点
+      wx.setStorageSync('lastPracticeVisit', Date.now());
+      this.setData({ hasPracticeUpdate: false });
+      
       // 学生端按原逻辑：首次完善档案时把 role 写成 student（可选）
       if (this.data.userInfo && this.data.userInfo.role === null) {
         await this.updateUserRole('student');
@@ -438,37 +463,23 @@ Page({
     }
   },
 
-  // 检查更新状态和红点提示
-  checkUpdateStatus() {
-    // 检查排行榜更新
-    this.checkLeaderboardUpdate();
-    // 检查教师功能更新
-    this.checkTeacherUpdate();
-    // 检查版本更新
-    this.checkVersionUpdates();
-  },
+      // 检查更新状态和红点提示
+    checkUpdateStatus() {
+      // 检查开始练习更新
+      this.checkPracticeUpdate();
+      // 检查版本更新
+      this.checkVersionUpdates();
+    },
 
-  // 检查排行榜更新
-  checkLeaderboardUpdate() {
-    // 模拟检查排行榜是否有新数据
-    const lastVisit = wx.getStorageSync('lastLeaderboardVisit') || 0;
-    const now = Date.now();
-    const hasUpdate = (now - lastVisit) > 24 * 60 * 60 * 1000; // 24小时内有更新
-    
-    this.setData({
-      hasLeaderboardUpdate: hasUpdate
-    });
-  },
-
-  // 检查教师功能更新
-  checkTeacherUpdate() {
-    // 模拟检查教师功能是否有新内容
-    const lastVisit = wx.getStorageSync('lastTeacherVisit') || 0;
+  // 检查开始练习更新
+  checkPracticeUpdate() {
+    // 检查开始练习是否有新内容
+    const lastVisit = wx.getStorageSync('lastPracticeVisit') || 0;
     const now = Date.now();
     const hasUpdate = (now - lastVisit) > 7 * 24 * 60 * 60 * 1000; // 7天内有更新
     
     this.setData({
-      hasTeacherUpdate: hasUpdate
+      hasPracticeUpdate: hasUpdate
     });
   },
 
@@ -486,83 +497,27 @@ Page({
 
   // 查看版本更新详情
   viewUpdate(e) {
-    const updateId = e.currentTarget.dataset.id;
-    const updates = this.data.updates.map(update => {
-      if (update.id === updateId) {
-        return { ...update, read: true };
+    const update = e.currentTarget.dataset.update;
+    if (!update) return;
+    
+    const updates = this.data.updates.map(u => {
+      if (u.id === update.id) {
+        return { ...u, read: true };
       }
-      return update;
+      return u;
     });
     
     this.setData({ updates });
     this.checkVersionUpdates();
     
     // 显示更新详情
-    const update = updates.find(u => u.id === updateId);
-    if (update) {
-      wx.showModal({
-        title: update.title,
-        content: update.description,
-        showCancel: false,
-        confirmText: '知道了'
-      });
-    }
-  },
-
-  // 显示设置页面
-  showSettings() {
-    wx.showActionSheet({
-      itemList: ['清除缓存', '关于我们', '意见反馈'],
-      success: (res) => {
-        switch (res.tapIndex) {
-          case 0:
-            this.clearCache();
-            break;
-          case 1:
-            this.showAbout();
-            break;
-          case 2:
-            this.showFeedback();
-            break;
-        }
-      }
-    });
-  },
-
-  // 清除缓存
-  clearCache() {
     wx.showModal({
-      title: '清除缓存',
-      content: '确定要清除所有缓存数据吗？',
-      success: (res) => {
-        if (res.confirm) {
-          wx.clearStorageSync();
-          wx.showToast({
-            title: '缓存已清除',
-            icon: 'success'
-          });
-        }
-      }
-    });
-  },
-
-  // 显示关于页面
-  showAbout() {
-    wx.showModal({
-      title: '关于三通英语助手',
-      content: '版本：1.0.0\n\n一个专为师生设计的智能英语学习工具，让学习更高效，让进步更可见。',
+      title: update.title,
+      content: update.description,
       showCancel: false,
       confirmText: '知道了'
     });
   },
 
-  // 显示反馈页面
-  showFeedback() {
-    wx.showModal({
-      title: '意见反馈',
-      content: '如有问题或建议，请联系开发团队。\n\n邮箱：feedback@example.com',
-      showCancel: false,
-      confirmText: '知道了'
-    });
-  }
+
 });
