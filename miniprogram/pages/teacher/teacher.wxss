@@ -1,8 +1,10 @@
 /* pages/teacher/teacher.wxss */
-page { background-color: #f2f2f7; }
+page { 
+  background-color: #f2f2f7; 
+}
+
 .container { 
   padding: 15px; 
-  padding-top: calc(env(safe-area-inset-top) + 88rpx + 15px);
   padding-bottom: 180rpx; 
 }
 
@@ -78,84 +80,4 @@ page { background-color: #f2f2f7; }
 }
 .btn-hover {
     background-color: #dcdce1;
-}
-
-/* 自定义导航栏 */
-.custom-navbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 99999;
-  background: #ffffff;
-  padding-top: env(safe-area-inset-top);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
-}
-
-.navbar-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 88rpx;
-  padding: 0 32rpx;
-  position: relative;
-  background: transparent;
-}
-
-.navbar-left {
-  width: 88rpx;
-  height: 88rpx;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  position: relative;
-  z-index: 10;
-}
-
-.back-icon {
-  font-size: 48rpx;
-  color: #007AFF;
-  font-weight: 300;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  position: relative;
-  z-index: 20;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 50%;
-  width: 64rpx;
-  height: 64rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.navbar-title {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  z-index: 10;
-}
-
-.title-text {
-  font-size: 36rpx;
-  font-weight: 600;
-  color: #000000;
-  text-align: center;
-}
-
-.navbar-right {
-  width: 88rpx;
-  height: 88rpx;
-  position: relative;
-  z-index: 10;
-}
-
-.container {
-  padding-top: calc(env(safe-area-inset-top) + 88rpx);
-  min-height: 100vh;
-  background: #f7f8fa;
 }

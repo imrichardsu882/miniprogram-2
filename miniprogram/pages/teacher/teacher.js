@@ -136,13 +136,6 @@ Page({
     }
   },
 
-  // 返回按钮处理
-  goBack: function() {
-    wx.navigateBack({
-      delta: 1
-    });
-  },
-
   togglePreviewMode() { this.setData({ isPreviewMode: !this.data.isPreviewMode }); },
 
   onCardTap(e) {

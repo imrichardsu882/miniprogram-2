@@ -1,16 +1,3 @@
-<!-- 自定义导航栏 -->
-<view class="custom-navbar">
-  <view class="navbar-content">
-    <view class="navbar-left" bindtap="goBack">
-      <text class="back-icon">‹</text>
-    </view>
-    <view class="navbar-title">
-      <text class="title-text">{{isPreviewMode ? '学生模式预览' : '我的课程'}}</text>
-    </view>
-    <view class="navbar-right"></view>
-  </view>
-</view>
-
 <view class="container">
   <view class="list-title">
     {{isPreviewMode ? '请选择要体验的课程' : '课程列表'}}
@@ -41,7 +28,7 @@
     </view>
     <view class="empty-list" wx:if="{{homeworkList.length === 0}}">
       <text>还没有任何课程</text>
-      <text>点击右下角“+”开始创建吧</text>
+      <text>点击右下角"+"开始创建吧</text>
     </view>
   </view>
 
